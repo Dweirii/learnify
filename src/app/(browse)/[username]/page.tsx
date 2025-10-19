@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getUserByUsername } from "@/server/services/user.service";
 import { isFollowingUser } from "@/server/services/follow.service";
 import { isBlockedByUser } from "@/server/services/block.service";
-import { StreamPlayer } from "@/components/stream-player";
+import { StreamPlayer } from "@/features/stream/components/stream-player";
 
 interface UserPageProps {
   params: Promise<{

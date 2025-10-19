@@ -1,4 +1,4 @@
-import { Logo } from "./_components/logo";
+import { Logo } from "@/features/auth/components/logo";
 
 const AuthLayout = ({
   children

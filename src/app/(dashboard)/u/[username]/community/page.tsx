@@ -2,8 +2,8 @@ import {format } from "date-fns";
 
 import { getBlockedUsers } from "@/server/services/block.service";
 
-import { DataTable } from "./_components/data-table";
-import { columns } from "./_components/columns";
+import { DataTable } from "@/features/user/components/community/data-table";
+import { columns } from "@/features/user/components/community/columns";
 
 const CommunityPage = async () => {
   const blockedUsers = await getBlockedUsers();

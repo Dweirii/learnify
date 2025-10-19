@@ -1,9 +1,9 @@
 import { getSelf } from "@/server/services/auth.service";
 import { getStreamByUserId } from "@/server/services/stream.service";
 
-import { UrlCard } from "./_components/url-card";
-import { KeyCard } from "./_components/key-card";
-import { ConnectModal } from "./_components/connect-modal";
+import { UrlCard } from "@/features/stream/components/url-card";
+import { KeyCard } from "@/features/stream/components/key-card";
+import { ConnectModal } from "@/features/stream/components/connect-modal";
 
 const KeysPage = async () => {
   const self = await getSelf();

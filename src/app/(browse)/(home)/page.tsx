@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { Results, ResultsSkeleton } from "./_components/results";
+import { Results, ResultsSkeleton } from "@/features/stream/components/home-results";
 
 export default function Page() {
   return (

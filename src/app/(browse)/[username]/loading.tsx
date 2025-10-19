@@ -1,4 +1,4 @@
-import { StreamPlayerSkeleton } from "@/components/stream-player";
+import { StreamPlayerSkeleton } from "@/features/stream/components/stream-player";
 
 const UserLoading = () => {
   return ( 

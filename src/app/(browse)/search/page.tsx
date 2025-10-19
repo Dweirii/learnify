@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
-import { Results, ResultsSkeleton } from "./_components/results";
+import { Results, ResultsSkeleton } from "@/features/stream/components/search-results";
 
 interface SearchPageProps {
   searchParams: Promise<{

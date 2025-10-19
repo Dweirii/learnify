@@ -2,9 +2,9 @@ import { redirect } from "next/navigation";
 
 import { getSelfByUsername } from "@/server/services/auth.service";
 
-import { Navbar } from "./_components/navbar";
-import { Sidebar } from "./_components/sidebar";
-import { Container } from "./_components/container";
+import { Navbar } from "@/features/layout/components/dashboard-navbar";
+import { Sidebar } from "@/features/layout/components/dashboard-sidebar";
+import { Container } from "@/features/layout/components/dashboard-container";
 
 interface CreatorLayoutProps {
   params: Promise<{ username: string }>;
