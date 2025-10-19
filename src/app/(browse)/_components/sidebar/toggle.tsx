@@ -1,53 +1,35 @@
 "use client";
 
-import { ArrowLeftFromLine, ArrowRightFromLine } from "lucide-react";
-
-import { Hint } from "@/components/hint";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/store/use-sidebar";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Hint } from "@/components/hint";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export const Toggle = () => {
-  const {
-    collapsed,
-    onExpand,
-    onCollapse
-  } = useSidebar((state) => state);
+  const { collapsed, onExpand, onCollapse } = useSidebar();
 
-  const label = collapsed ? "Expand" : "Collapse";
+  const label = collapsed ? "Expand Sidebar" : "Collapse Sidebar";
 
   return (
-    <>
-      {collapsed && (
-        <div className="hidden lg:flex w-full items-center justify-center pt-4 mb-4">
-          <Hint label={label} side="right" asChild>
-            <Button
-              onClick={onExpand}
-              variant="ghost" 
-              className="h-auto p-2"
-            >
-              <ArrowRightFromLine className="h-4 w-4" />
-            </Button>
-          </Hint>
-        </div>
-      )}
-      {!collapsed && (
-        <div className="p-3 pl-6 mb-2 flex items-center w-full">
-          <p className="font-semibold text-primary">
-            For you
-          </p>
-          <Hint label={label} side="right" asChild>
-            <Button
-              onClick={onCollapse}
-              className="h-auto p-2 ml-auto" 
-              variant="ghost"
-            >
-              <ArrowLeftFromLine className="h-4 w-4" />
-            </Button>
-          </Hint>
-        </div>
-      )}
-    </>
+    <Hint label={label} side="right" asChild align="start">
+      <Button
+        onClick={() => {
+          requestAnimationFrame(() => {
+            collapsed ? onExpand() : onCollapse();
+          });
+        }}
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 hover:bg-accent/50 transition-all duration-200 hidden lg:flex"
+      >
+        {collapsed ? (
+          <PanelLeftOpen className="h-4 w-4" />
+        ) : (
+          <PanelLeftClose className="h-4 w-4" />
+        )}
+      </Button>
+    </Hint>
   );
 };
 

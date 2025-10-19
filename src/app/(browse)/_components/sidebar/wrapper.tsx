@@ -1,38 +1,27 @@
 "use client";
 
-import { useIsClient } from "usehooks-ts";
-
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/store/use-sidebar";
-
-import { ToggleSkeleton } from "./toggle";
-import { FollowingSkeleton } from "./following";
-import { RecommendedSkeleton } from "./recommended";
+import { useEffect, useState } from "react";
 
 interface WrapperProps {
   children: React.ReactNode;
-};
+}
 
-export const Wrapper = ({
-  children,
-}: WrapperProps) => {
-  const isClient = useIsClient();
-  const { collapsed } = useSidebar((state) => state);
+export const Wrapper = ({ children }: WrapperProps) => {
+  const { collapsed } = useSidebar();
+  const [hydrated, setHydrated] = useState(false);
 
-  if (!isClient) {
-    return (
-      <aside className="fixed left-0 flex flex-col w-[70px] lg:w-60 h-full bg-background border-r border-[#2D2E35] z-50">
-        <ToggleSkeleton />
-        <FollowingSkeleton />
-        <RecommendedSkeleton />
-      </aside>
-    );
-  }
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
+  if (!hydrated) return null;
 
   return (
     <aside
       className={cn(
-        "fixed left-0 flex flex-col w-60 h-full bg-background border-r border-[#2D2E35] z-50",
+        "fixed left-0 w-60 h-full z-40 bg-white dark:bg-[#141517] dark:shadow-lg shadow-lg p-4 transition-all duration-200",
         collapsed && "w-[70px]"
       )}
     >
