@@ -12,7 +12,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ThemeToggle } from "./theme-toggle";
 import Link from "next/link";
 import {
   LogOut,
@@ -40,7 +39,6 @@ export const Actions = () => {
   if (!user) {
     return (
       <div className="flex items-center gap-2">
-        <ThemeToggle />
         <SignInButton mode="modal">
           <Button size="sm" className="bg-primary hover:bg-primary/90">
             Sign In
@@ -56,9 +54,7 @@ export const Actions = () => {
     "U";
 
   return (
-    <div className="flex items-center gap-2">
-      <ThemeToggle />
-
+    <div className="flex items-center gap-2" >
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
