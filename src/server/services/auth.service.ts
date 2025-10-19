@@ -17,8 +17,7 @@ export const getSelf = async () => {
     throw new Error("Not found");
   }
 
-  // Ensure all data is properly serialized
-  const serializedUser = {
+  return JSON.parse(JSON.stringify({
     id: user.id,
     username: user.username,
     imageUrl: user.imageUrl,
@@ -26,10 +25,7 @@ export const getSelf = async () => {
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     externalUserId: user.externalUserId,
-  };
-
-  // Double-serialize to ensure it's a plain object
-  return JSON.parse(JSON.stringify(serializedUser));
+  }));
 };
 
 export const getSelfByUsername = async (username: string) => {
@@ -51,8 +47,7 @@ export const getSelfByUsername = async (username: string) => {
     throw new Error("Unauthorized");
   }
 
-  // Ensure all data is properly serialized
-  const serializedUser = {
+  return JSON.parse(JSON.stringify({
     id: user.id,
     username: user.username,
     imageUrl: user.imageUrl,
@@ -60,8 +55,5 @@ export const getSelfByUsername = async (username: string) => {
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
     externalUserId: user.externalUserId,
-  };
-
-  // Double-serialize to ensure it's a plain object
-  return JSON.parse(JSON.stringify(serializedUser));
+  }));
 };

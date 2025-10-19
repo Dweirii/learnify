@@ -3,7 +3,7 @@ export const getStreamByUserId = async (userId: string) => {
   const stream = await db.stream.findUnique({ where: { userId } });
   if (!stream) return null;
 
-  return {
+  return JSON.parse(JSON.stringify({
     id: stream.id,
     name: stream.name,
     thumbnailUrl: stream.thumbnailUrl,
@@ -17,5 +17,5 @@ export const getStreamByUserId = async (userId: string) => {
     ingressId: stream.ingressId,
     serverUrl: stream.serverUrl,
     streamKey: stream.streamKey,
-  };
+  }));
 };
