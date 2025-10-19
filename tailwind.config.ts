@@ -1,3 +1,5 @@
+import tailwindcssAnimate from "tailwindcss-animate";
+
 import { withUt } from "uploadthing/tw";
 
 /** @type {import('tailwindcss').Config} */
@@ -60,5 +62,5 @@ module.exports = withUt({
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 });

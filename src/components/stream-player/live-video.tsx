@@ -3,7 +3,6 @@
 import { useRef, useState, useEffect } from "react";
 import { Participant, Track } from "livekit-client";
 import { useTracks } from "@livekit/components-react";
-import { useEventListener } from "usehooks-ts";
 
 import { VolumeControl } from "./volume-control";
 import { FullscreenControl } from "./fullscreen-control";
@@ -57,7 +56,12 @@ export const LiveVideo = ({
     setIsFullscreen(isCurrentlyFullscreen);
   }
 
-  useEventListener("fullscreenchange", handleFullscreenChange, wrapperRef);
+  useEffect(() => {
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => {
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    };
+  }, []);
 
   useTracks([Track.Source.Camera, Track.Source.Microphone])
     .filter((track) => track.participant.identity === participant.identity)

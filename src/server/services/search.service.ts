@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getSelf } from "@/lib/auth-service";
+import { getSelf } from "@/server/services/auth.service";
 
 export const getSearch = async (term?: string) => {
   let userId;
@@ -94,5 +94,20 @@ export const getSearch = async (term?: string) => {
     });
   };
 
-  return streams;
+  return JSON.parse(JSON.stringify(streams.map(stream => ({
+    id: stream.id,
+    name: stream.name,
+    thumbnailUrl: stream.thumbnailUrl,
+    isLive: stream.isLive,
+    updatedAt: stream.updatedAt.toISOString(),
+    user: {
+      id: stream.user.id,
+      username: stream.user.username,
+      imageUrl: stream.user.imageUrl,
+      bio: stream.user.bio,
+      createdAt: stream.user.createdAt.toISOString(),
+      updatedAt: stream.user.updatedAt.toISOString(),
+      externalUserId: stream.user.externalUserId,
+    },
+  }))));
 };

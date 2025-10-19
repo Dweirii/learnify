@@ -3,8 +3,8 @@
 import { toast } from "sonner";
 import { useTransition } from "react";
 
-import { onBlock, onUnblock } from "@/actions/block";
-import { onFollow, onUnfollow } from "@/actions/follow";
+import { onUnblock } from "@/server/actions/block";
+import { onFollow, onUnfollow } from "@/server/actions/follow";
 import { Button } from "@/components/ui/button";
 
 interface ActionsProps {
@@ -55,7 +55,7 @@ export const Actions = ({
     <Button 
       disabled={isPending} 
       onClick={onClick} 
-      variant="primary"
+      variant="default"
     >
       {isFollowing ? "Unfollow" : "Follow"}
     </Button>

@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { useTransition } from "react";
 
-import { onUnblock } from "@/actions/block";
+import { onUnblock } from "@/server/actions/block";
 import { Button } from "@/components/ui/button";
 
 interface UnblockButtonProps {

@@ -1,10 +1,11 @@
-import { getStreams } from "@/lib/feed-service";
+import { getStreams } from "@/server/services/feed.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HomeStreamResult } from "@/types";
 
 import { ResultCard, ResultCardSkeleton } from "./result-card";
 
 export const Results = async () => {
-  const data = await getStreams();
+  const data = await getStreams() as HomeStreamResult[];
 
   return (
     <div>

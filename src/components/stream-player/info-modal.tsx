@@ -18,7 +18,7 @@ import { Hint } from "@/components/hint";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { updateStream } from "@/actions/stream";
+import { updateStream } from "@/server/actions/stream";
 import { UploadDropzone } from "@/lib/uploadthing";
 
 interface InfoModalProps {
@@ -145,7 +145,7 @@ export const InfoModal = ({
             </DialogClose>
             <Button
               disabled={isPending}
-              variant="primary"
+              variant="default"
               type="submit"
             >
               Save

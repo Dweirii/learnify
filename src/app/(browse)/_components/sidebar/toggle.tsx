@@ -16,7 +16,11 @@ export const Toggle = () => {
       <Button
         onClick={() => {
           requestAnimationFrame(() => {
-            collapsed ? onExpand() : onCollapse();
+            if (collapsed) {
+              onExpand();
+            } else {
+              onCollapse();
+            }
           });
         }}
         variant="ghost"

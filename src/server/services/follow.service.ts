@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getSelf } from "@/lib/auth-service";
+import { getSelf } from "@/server/services/auth.service";
 
 export const getFollowedUsers = async () => {
   try {
@@ -41,7 +41,25 @@ export const getFollowedUsers = async () => {
       ]
     });
 
-    return followedUsers;
+    return JSON.parse(JSON.stringify(followedUsers.map(follow => ({
+      id: follow.id,
+      followerId: follow.followerId,
+      followingId: follow.followingId,
+      createdAt: follow.createdAt.toISOString(),
+      updatedAt: follow.createdAt.toISOString(), // Follow model doesn't have updatedAt, using createdAt
+      following: {
+        id: follow.following.id,
+        username: follow.following.username,
+        imageUrl: follow.following.imageUrl,
+        bio: follow.following.bio,
+        createdAt: follow.following.createdAt.toISOString(),
+        updatedAt: follow.following.updatedAt.toISOString(),
+        externalUserId: follow.following.externalUserId,
+        stream: follow.following.stream ? {
+          isLive: follow.following.stream.isLive,
+        } : null,
+      },
+    }))));
   } catch {
     return [];
   }
@@ -113,7 +131,30 @@ export const followUser = async (id: string) => {
     },
   });
 
-  return follow;
+  return {
+    id: follow.id,
+    followerId: follow.followerId,
+    followingId: follow.followingId,
+    createdAt: follow.createdAt.toISOString(),
+    following: {
+      id: follow.following.id,
+      username: follow.following.username,
+      imageUrl: follow.following.imageUrl,
+      bio: follow.following.bio,
+      createdAt: follow.following.createdAt.toISOString(),
+      updatedAt: follow.following.updatedAt.toISOString(),
+      externalUserId: follow.following.externalUserId,
+    },
+    follower: {
+      id: follow.follower.id,
+      username: follow.follower.username,
+      imageUrl: follow.follower.imageUrl,
+      bio: follow.follower.bio,
+      createdAt: follow.follower.createdAt.toISOString(),
+      updatedAt: follow.follower.updatedAt.toISOString(),
+      externalUserId: follow.follower.externalUserId,
+    },
+  };
 };
 
 export const unfollowUser = async (id: string) => {
@@ -153,5 +194,19 @@ export const unfollowUser = async (id: string) => {
     },
   });
 
-  return follow;
+  return {
+    id: follow.id,
+    followerId: follow.followerId,
+    followingId: follow.followingId,
+    createdAt: follow.createdAt.toISOString(),
+    following: {
+      id: follow.following.id,
+      username: follow.following.username,
+      imageUrl: follow.following.imageUrl,
+      bio: follow.following.bio,
+      createdAt: follow.following.createdAt.toISOString(),
+      updatedAt: follow.following.updatedAt.toISOString(),
+      externalUserId: follow.following.externalUserId,
+    },
+  };
 };

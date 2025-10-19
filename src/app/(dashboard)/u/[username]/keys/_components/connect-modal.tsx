@@ -3,9 +3,8 @@
 import { toast } from "sonner";
 import { useState, useTransition, useRef, ElementRef } from "react";
 import { AlertTriangle } from "lucide-react";
-import { IngressInput } from "livekit-server-sdk";
 
-import { createIngress } from "@/actions/ingress";
+import { createIngress } from "@/server/actions/ingress";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -28,9 +27,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-const RTMP = String(IngressInput.RTMP_INPUT);
-const WHIP = String(IngressInput.WHIP_INPUT);
-
+// ✅ Removed `livekit-server-sdk` import (server-only)
+// Use simple constants instead
+const RTMP = "1"; // corresponds to IngressInput.RTMP_INPUT
+const WHIP = "2"; // corresponds to IngressInput.WHIP_INPUT
 type IngressType = typeof RTMP | typeof WHIP;
 
 export const ConnectModal = () => {
@@ -42,19 +42,17 @@ export const ConnectModal = () => {
     startTransition(() => {
       createIngress(parseInt(ingressType))
         .then(() => {
-          toast.success("Ingress created");
+          toast.success("Ingress created successfully");
           closeRef?.current?.click();
         })
         .catch(() => toast.error("Something went wrong"));
     });
-  }
+  };
 
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="primary">
-          Generate connection
-        </Button>
+        <Button variant="default">Generate connection</Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
@@ -63,7 +61,7 @@ export const ConnectModal = () => {
         <Select
           disabled={isPending}
           value={ingressType}
-          onValueChange={(value) => setIngressType(value)}
+          onValueChange={(value) => setIngressType(value as IngressType)}
         >
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Ingress Type" />
@@ -77,20 +75,14 @@ export const ConnectModal = () => {
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Warning!</AlertTitle>
           <AlertDescription>
-            This action will reset all active streams using the current connection
+            This action will reset all active streams using the current connection.
           </AlertDescription>
         </Alert>
-        <div className="flex justify-between">
+        <div className="flex justify-between mt-4">
           <DialogClose ref={closeRef} asChild>
-            <Button variant="ghost">
-              Cancel
-            </Button>
+            <Button variant="ghost">Cancel</Button>
           </DialogClose>
-          <Button
-            disabled={isPending}
-            onClick={onSubmit}
-            variant="primary"
-          >
+          <Button disabled={isPending} onClick={onSubmit} variant="default">
             Generate
           </Button>
         </div>

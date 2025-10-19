@@ -1,5 +1,5 @@
-import { getSelf } from "@/lib/auth-service";
-import { getStreamByUserId } from "@/lib/stream-service";
+import { getSelf } from "@/server/services/auth.service";
+import { getStreamByUserId } from "@/server/services/stream.service";
 
 import { UrlCard } from "./_components/url-card";
 import { KeyCard } from "./_components/key-card";

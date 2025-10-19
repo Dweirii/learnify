@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getSelf } from "@/lib/auth-service";
+import { getSelf } from "@/server/services/auth.service";
 
 export const getRecommended = async () => {
   let userId;
@@ -82,5 +82,16 @@ export const getRecommended = async () => {
     });
   }
 
-  return users;
+  return JSON.parse(JSON.stringify(users.map(user => ({
+    id: user.id,
+    username: user.username,
+    imageUrl: user.imageUrl,
+    bio: user.bio,
+    createdAt: user.createdAt.toISOString(),
+    updatedAt: user.updatedAt.toISOString(),
+    externalUserId: user.externalUserId,
+    stream: user.stream ? {
+      isLive: user.stream.isLive,
+    } : null,
+  }))));
 };

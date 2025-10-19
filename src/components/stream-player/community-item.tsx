@@ -5,7 +5,7 @@ import { useTransition } from "react";
 import { MinusCircle } from "lucide-react";
 
 import { Hint } from "@/components/hint";
-import { onBlock } from "@/actions/block";
+import { onBlock } from "@/server/actions/block";
 import { cn } from "@/lib/utils";
 import stringToColor from "string-to-color";
 import { Button } from "@/components/ui/button";

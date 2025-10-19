@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { updateUser } from "@/actions/user";
+import { updateUser } from "@/server/actions/user";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -68,7 +68,7 @@ export const BioModal = ({
             <Button
               disabled={isPending}
               type="submit"
-              variant="primary"
+              variant="default"
             >
               Save
             </Button>

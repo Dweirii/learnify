@@ -5,7 +5,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/store/use-sidebar";
-import { UserAvatar, UserAvatarSkeleton } from "@/components/user-avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { LiveBadge } from "@/components/live-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";

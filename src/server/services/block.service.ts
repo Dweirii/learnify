@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { getSelf } from "@/lib/auth-service";
+import { getSelf } from "@/server/services/auth.service";
 
 export const isBlockedByUser = async (id: string) => {
   try {
@@ -70,7 +70,20 @@ export const blockUser = async (id: string) => {
     },
   });
 
-  return block;
+  return {
+    id: block.id,
+    blockerId: block.blockerId,
+    blockedId: block.blockedId,
+    blocked: {
+      id: block.blocked.id,
+      username: block.blocked.username,
+      imageUrl: block.blocked.imageUrl,
+      bio: block.blocked.bio,
+      createdAt: block.blocked.createdAt.toISOString(),
+      updatedAt: block.blocked.updatedAt.toISOString(),
+      externalUserId: block.blocked.externalUserId,
+    },
+  };
 };
 
 export const unblockUser = async (id: string) => {
@@ -110,7 +123,20 @@ export const unblockUser = async (id: string) => {
     },
   });
 
-  return unblock;
+  return {
+    id: unblock.id,
+    blockerId: unblock.blockerId,
+    blockedId: unblock.blockedId,
+    blocked: {
+      id: unblock.blocked.id,
+      username: unblock.blocked.username,
+      imageUrl: unblock.blocked.imageUrl,
+      bio: unblock.blocked.bio,
+      createdAt: unblock.blocked.createdAt.toISOString(),
+      updatedAt: unblock.blocked.updatedAt.toISOString(),
+      externalUserId: unblock.blocked.externalUserId,
+    },
+  };
 };
 
 export const getBlockedUsers = async () => {
@@ -125,5 +151,18 @@ export const getBlockedUsers = async () => {
     },
   });
 
-  return blockedUsers;
+  return blockedUsers.map(block => ({
+    id: block.id,
+    blockerId: block.blockerId,
+    blockedId: block.blockedId,
+    blocked: {
+      id: block.blocked.id,
+      username: block.blocked.username,
+      imageUrl: block.blocked.imageUrl,
+      bio: block.blocked.bio,
+      createdAt: block.blocked.createdAt.toISOString(),
+      updatedAt: block.blocked.updatedAt.toISOString(),
+      externalUserId: block.blocked.externalUserId,
+    },
+  }));
 };

@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { onFollow, onUnfollow } from "@/actions/follow";
+import { onFollow, onUnfollow } from "@/server/actions/follow";
 
 interface ActionsProps {
   hostIdentity: string;
@@ -60,7 +60,7 @@ export const Actions = ({
     <Button
       disabled={isPending || isHost}
       onClick={toggleFollow}
-      variant="primary"
+      variant="default"
       size="sm"
       className="w-full lg:w-auto"
     >

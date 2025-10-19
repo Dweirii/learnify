@@ -1,5 +1,6 @@
-import { getSearch } from "@/lib/search-service";
+import { getSearch } from "@/server/services/search.service";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SearchStreamResult } from "@/types";
 
 import { 
   ResultCard, 
@@ -13,7 +14,7 @@ interface ResultsProps {
 export const Results = async ({
   term,
 }: ResultsProps) => {
-  const data = await getSearch(term);
+  const data = await getSearch(term) as SearchStreamResult[];
 
   return (
     <div>

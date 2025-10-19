@@ -1,5 +1,6 @@
-import { getFollowedUsers } from "@/lib/follow-service";
-import { getRecommended } from "@/lib/recommended-service";
+import { getFollowedUsers } from "@/server/services/follow.service";
+import { getRecommended } from "@/server/services/recommended.service";
+import { SerializedFollow, SerializedUserWithStream } from "@/types";
 
 import { Wrapper } from "./wrapper";
 import { Following, FollowingSkeleton } from "./following";
@@ -11,8 +12,8 @@ import SidebarItems from "./sidebar-items";
 
 
 export const Sidebar = async () => {
-  const recommended = await getRecommended();
-  const following = await getFollowedUsers();
+  const recommended = await getRecommended() as SerializedUserWithStream[];
+  const following = await getFollowedUsers() as SerializedFollow[];
 
   return (
     <Wrapper>

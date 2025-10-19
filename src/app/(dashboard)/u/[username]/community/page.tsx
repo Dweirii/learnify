@@ -1,6 +1,6 @@
 import {format } from "date-fns";
 
-import { getBlockedUsers } from "@/lib/block-service";
+import { getBlockedUsers } from "@/server/services/block.service";
 
 import { DataTable } from "./_components/data-table";
 import { columns } from "./_components/columns";
