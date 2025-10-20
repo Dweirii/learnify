@@ -54,12 +54,12 @@ export const Actions = () => {
     "U";
 
   return (
-    <div className="flex items-center gap-2" >
+    <div className="flex items-center gap-2">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="flex items-center gap-3 ml-2 px-2 py-1 h-auto hover:bg-muted/50 transition-all duration-200 data-[state=open]:bg-muted/50 rounded-lg"
+            className="flex items-center gap-3 ml-2 px-2 py-1 h-auto hover:bg-muted/50 transition-all duration-200 data-[state=open]:bg-muted/50 rounded-lg focus-visible:outline-none focus-visible:ring-0 focus:outline-none focus:ring-0"
           >
             <div className="relative">
               <Avatar className="h-7 w-7">
@@ -89,7 +89,7 @@ export const Actions = () => {
           </Button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-72 p-2" sideOffset={8}>
+        <DropdownMenuContent align="end" className="w-72 p-2 bg-[#141517]" sideOffset={8}>
           <DropdownMenuLabel className="p-0 font-normal">
             <div className="flex items-center gap-3 px-3 py-4 bg-muted/30 rounded-lg mb-2">
               <div className="relative">
