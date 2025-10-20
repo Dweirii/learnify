@@ -13,7 +13,7 @@ export const CategoryPlaceholder = ({ title, imageUrl, href }: CategoryPlacehold
       <div className="relative w-full h-[200px] md:h-[280px] rounded-lg overflow-hidden group cursor-pointer">
         {/* Category Image */}
         <Image
-          src={imageUrl}
+          src="/banner.jpg"
           alt={title}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"

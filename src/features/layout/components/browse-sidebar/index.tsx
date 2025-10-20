@@ -28,7 +28,7 @@ export const Sidebar = async () => {
 
 export const SidebarSkeleton = () => {
   return (
-    <aside className="fixed left-0 flex flex-col w-[70px] lg:w-60 h-full bg-background sidebar-shadow z-50 p-4">
+    <aside className="fixed left-0 flex flex-col w-[70px] lg:w-60 h-full bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)] sidebar-shadow z-50 p-4">
       <div className="space-y-4 pt-4 lg:pt-0">
         <FollowingSkeleton />
         <RecommendedSkeleton />

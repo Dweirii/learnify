@@ -22,16 +22,21 @@ export default function CategoryRow({
   // Show placeholder if no streams
   if (!items || items.length === 0) {
     return (
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">{title}</h2>
+      <section className="mb-10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-6 w-[3px] bg-[#0BA84E] rounded-full" />
+          <h2 className="text-xl font-semibold tracking-wide text-white/90 drop-shadow-[0_0_10px_rgba(0,255,120,0.15)]">
+            {title}
+          </h2>
         </div>
-        <CategoryPlaceholder 
+
+        <CategoryPlaceholder
           title={title}
           imageUrl={categoryImageUrl}
           href={showMoreHref}
         />
       </section>
+
     );
   }
 
@@ -39,7 +44,9 @@ export default function CategoryRow({
   return (
     <section className="mb-8">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold">{title}</h2>
+      <h2 className="text-2xl font-semibold text-white drop-shadow-[0_0_8px_rgba(0,255,120,0.2)]">
+          {title}
+        </h2>
         <Link
           href={showMoreHref}
           className="text-sm text-muted-foreground hover:text-primary transition"
