@@ -65,8 +65,6 @@ export const Results = async () => {
 
   return (
     <div className="space-y-12 px-2 md:px-6">
-      <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Live Streams</h1>
-
       {sortedCategories.map(({ category, title, href, imageUrl }) => (
         <CategoryRow
           key={category}

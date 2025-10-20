@@ -3,7 +3,7 @@ import { Actions } from "./actions";
 
 export const Navbar = () => {
   return (
-    <nav className="fixed top-0 w-full h-20 z-[49] bg-background/95 backdrop-blur-sm border-b border-border px-2 lg:px-4 flex justify-between items-center shadow-sm">
+    <nav className="fixed top-0 w-full h-20 z-[49] bg-[#141517] backdrop-blur-sm shadow-[0_0_10px_0_rgba(0,0,0,0.6)] px-2 lg:px-4 flex justify-between items-center">
       <Logo />
       <div className="flex items-center gap-2">
         <Actions />
