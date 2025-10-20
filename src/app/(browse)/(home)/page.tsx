@@ -4,7 +4,7 @@ import { Results, ResultsSkeleton } from "@/features/stream/components/home-resu
 
 export default function Page() {
   return (
-    <div className="h-full p-8 max-w-screen-2xl mx-auto bg-[#161719]">
+    <div className="h-full p-8 max-w-screen-2xl mx-auto bg-[#141517]">
       <Suspense fallback={<ResultsSkeleton />}>
         <Results />
       </Suspense>

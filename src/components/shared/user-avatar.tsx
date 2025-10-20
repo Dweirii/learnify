@@ -42,7 +42,7 @@ export const UserAvatar = ({
   const canShowBadge = showBadge && isLive;
 
   return (
-    <div className="relative">
+    <div className="relative pt-2">
       <Avatar
         className={cn(
           isLive && "ring-2 ring-rose-500 border border-background",

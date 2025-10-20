@@ -1,12 +1,15 @@
 import { db } from "@/lib/db"
 import { getSelf } from "@/server/services/auth.service"
 import type { StreamCategory } from "@prisma/client";
+import type { HomeStreamResult } from "@/types";
 
 export const getLiveStreamsByCategory = async (
   category: StreamCategory,
-  params?: { take?: number; cursor?: { updatedAt: string; id: string } }
-) => {
-  const take = params?.take ?? 20;
+  params?: { take?: number; page?: number }
+): Promise<HomeStreamResult[]> => {
+  const take = params?.take ?? 24;
+  const page = params?.page ?? 1;
+  const skip = (page - 1) * take;
 
   let userId: string | null = null;
 
@@ -34,7 +37,6 @@ export const getLiveStreamsByCategory = async (
   };
 
   const orderBy = [{ updatedAt: "desc" as const }, { id: "desc" as const }];
-
   const streams = await db.stream.findMany({
     where,
     select: {
@@ -43,7 +45,6 @@ export const getLiveStreamsByCategory = async (
       isLive: true,
       thumbnailUrl: true,
       category: true,
-      updatedAt: true,
       user: {
         select: {
           id: true,
@@ -56,15 +57,11 @@ export const getLiveStreamsByCategory = async (
         },
       },
     },
-    orderBy,
+    orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
     take,
-    ...(params?.cursor && {
-      cursor: params.cursor, // Use correct cursor type compatible with StreamWhereUniqueInput
-      skip: 1,
-    }),
+    skip,
   });
 
-  // Serialize dates for RSC boundaries
   return streams.map((s) => ({
     id: s.id,
     name: s.name,
@@ -80,7 +77,6 @@ export const getLiveStreamsByCategory = async (
       updatedAt: s.user.updatedAt,
       externalUserId: s.user.externalUserId,
     },
-    updatedAt: s.updatedAt,
   }));
 };
 
@@ -88,16 +84,16 @@ export const getLiveStreamsByCategory = async (
 export const getLiveStreamsGroupedByCategory = async (
   categories: StreamCategory[],
   takePerCategory = 12
-) => {
+): Promise<Map<StreamCategory, HomeStreamResult[]>> => {
   const results = await Promise.all(
     categories.map((category) =>
-      getLiveStreamsByCategory(category, { take: takePerCategory })
+      getLiveStreamsByCategory(category, { take: takePerCategory, page: 1 })
     )
   );
 
-  const grouped = new Map<StreamCategory, ReturnType<typeof Object>>();
+  const grouped = new Map<StreamCategory, HomeStreamResult[]>();
   categories.forEach((c, i) => {
-    grouped.set(c, results[i]);
+    grouped.set(c as StreamCategory, results[i]);
   });
 
   return grouped;
