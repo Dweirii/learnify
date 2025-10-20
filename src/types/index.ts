@@ -69,6 +69,16 @@ export type SerializedFollow = {
   following: SerializedUserWithStream;
 };
 
+export type HeroStreamResult = {
+  id: string;
+  name: string;
+  thumbnailUrl: string | null;
+  isLive: boolean;
+  category: StreamCategory;
+  viewerCount: number;
+  user: SerializedUser;
+}
+
 // Future types will be added here for:
 // - API response types
 // - Shared interfaces
