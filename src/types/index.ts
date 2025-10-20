@@ -1,6 +1,8 @@
 // Shared TypeScript types for the application
 // This file will be expanded when integrating tRPC
 
+import { StreamCategory } from "@prisma/client";
+
 export type SerializedUser = {
   id: string;
   username: string;
@@ -34,6 +36,7 @@ export type HomeStreamResult = {
   isLive: boolean;
   name: string;
   thumbnailUrl: string | null;
+  category: StreamCategory;
 };
 
 // For search page results

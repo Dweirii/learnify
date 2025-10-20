@@ -27,6 +27,13 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
+enum StreamCategory {
+  CODING_TECHNOLOGY
+  CREATIVITY_ARTS
+  STUDY_FOCUS
+  INNOVATION_BUSINESS
+}
+
 model Stream {
   id String @id @default(uuid())
   name String @db.Text
@@ -43,6 +50,8 @@ model Stream {
 
   userId String @unique
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  category StreamCategory @default(INNOVATION_BUSINESS)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

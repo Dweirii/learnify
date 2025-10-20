@@ -1,8 +1,14 @@
 import { db } from "@/lib/db"
 import { getSelf } from "@/server/services/auth.service"
+import type { StreamCategory } from "@prisma/client";
 
-export const getStreams = async () => {
-  let userId;
+export const getLiveStreamsByCategory = async (
+  category: StreamCategory,
+  params?: { take?: number; cursor?: { updatedAt: string; id: string } }
+) => {
+  const take = params?.take ?? 20;
+
+  let userId: string | null = null;
 
   try {
     const self = await getSelf();
@@ -11,70 +17,88 @@ export const getStreams = async () => {
     userId = null;
   }
 
-  let streams = [];
-
-  if (userId) {
-    streams = await db.stream.findMany({
-      where: {
-        user: {
-          NOT: {
-            blocking: {
-              some: {
-                blockedId: userId,
-              }
-            }
-          }
-        }
-      },
-      select: {
-        id: true,
-        user: true,
-        isLive: true,
-        name: true,
-        thumbnailUrl: true,
-      },
-      orderBy: [
-        {
-          isLive: "desc",
+  const where = {
+    isLive: true,
+    category,
+    ...(userId && {
+      user: {
+        NOT: {
+          blocking: {
+            some: {
+              blockedId: userId,
+            },
+          },
         },
-        {
-          updatedAt: "desc",
-        }
-      ],
-    });
-  } else {
-    streams = await db.stream.findMany({
-      select: {
-        id: true,
-        user: true,
-        isLive: true,
-        name: true,
-        thumbnailUrl: true,
       },
-      orderBy: [
-        {
-          isLive: "desc",
-        },
-        {
-          updatedAt: "desc",
-        }
-      ]
-    });
-  }
+    }),
+  };
 
-  return JSON.parse(JSON.stringify(streams.map(stream => ({
-    id: stream.id,
-    user: {
-      id: stream.user.id,
-      username: stream.user.username,
-      imageUrl: stream.user.imageUrl,
-      bio: stream.user.bio,
-      createdAt: stream.user.createdAt.toISOString(),
-      updatedAt: stream.user.updatedAt.toISOString(),
-      externalUserId: stream.user.externalUserId,
+  const orderBy = [{ updatedAt: "desc" as const }, { id: "desc" as const }];
+
+  const streams = await db.stream.findMany({
+    where,
+    select: {
+      id: true,
+      name: true,
+      isLive: true,
+      thumbnailUrl: true,
+      category: true,
+      updatedAt: true,
+      user: {
+        select: {
+          id: true,
+          username: true,
+          imageUrl: true,
+          bio: true,
+          createdAt: true,
+          updatedAt: true,
+          externalUserId: true,
+        },
+      },
     },
-    isLive: stream.isLive,
-    name: stream.name,
-    thumbnailUrl: stream.thumbnailUrl,
-  }))));
+    orderBy,
+    take,
+    ...(params?.cursor && {
+      cursor: params.cursor, // Use correct cursor type compatible with StreamWhereUniqueInput
+      skip: 1,
+    }),
+  });
+
+  // Serialize dates for RSC boundaries
+  return streams.map((s) => ({
+    id: s.id,
+    name: s.name,
+    isLive: s.isLive,
+    thumbnailUrl: s.thumbnailUrl,
+    category: s.category,
+    user: {
+      id: s.user.id,
+      username: s.user.username,
+      imageUrl: s.user.imageUrl,
+      bio: s.user.bio,
+      createdAt: s.user.createdAt,
+      updatedAt: s.user.updatedAt,
+      externalUserId: s.user.externalUserId,
+    },
+    updatedAt: s.updatedAt,
+  }));
+};
+
+// Batch fetch top N live streams per category for homepage rows
+export const getLiveStreamsGroupedByCategory = async (
+  categories: StreamCategory[],
+  takePerCategory = 12
+) => {
+  const results = await Promise.all(
+    categories.map((category) =>
+      getLiveStreamsByCategory(category, { take: takePerCategory })
+    )
+  );
+
+  const grouped = new Map<StreamCategory, ReturnType<typeof Object>>();
+  categories.forEach((c, i) => {
+    grouped.set(c, results[i]);
+  });
+
+  return grouped;
 };
