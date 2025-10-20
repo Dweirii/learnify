@@ -2,17 +2,41 @@ import { StreamCategory } from "@prisma/client";
 import { getLiveStreamsGroupedByCategory } from "@/server/services/feed.service";
 import CategoryRow from "./category-row";
 import { Skeleton } from "@/components/ui/skeleton";
-import Link from "next/link";
 import { ThumbnailSkeleton } from "@/components/shared/thumbnail";
 import { UserAvatarSkeleton } from "@/components/shared/user-avatar";
 
 const HOMEPAGE_TAKE_PER_ROW = 12;
 
-const CATEGORY_ORDER: { category: StreamCategory; title: string; href: string }[] = [
-  { category: StreamCategory.CODING_TECHNOLOGY,   title: "Coding & Technology", href: "/category/CODING_TECHNOLOGY" },
-  { category: StreamCategory.CREATIVITY_ARTS,     title: "Creativity & Arts",  href: "/category/CREATIVITY_ARTS" },
-  { category: StreamCategory.STUDY_FOCUS,         title: "Study & Focus",      href: "/category/STUDY_FOCUS" },
-  { category: StreamCategory.INNOVATION_BUSINESS, title: "Innovation & Business", href: "/category/INNOVATION_BUSINESS" },
+const CATEGORY_ORDER: { 
+  category: StreamCategory; 
+  title: string; 
+  href: string;
+  imageUrl: string;
+}[] = [
+  { 
+    category: StreamCategory.CODING_TECHNOLOGY, 
+    title: "Coding & Technology", 
+    href: "/category/CODING_TECHNOLOGY",
+    imageUrl: "/categories/coding-technology.jpg"
+  },
+  { 
+    category: StreamCategory.CREATIVITY_ARTS, 
+    title: "Creativity & Arts", 
+    href: "/category/CREATIVITY_ARTS",
+    imageUrl: "/categories/creativity-arts.jpg"
+  },
+  { 
+    category: StreamCategory.STUDY_FOCUS, 
+    title: "Study & Focus", 
+    href: "/category/STUDY_FOCUS",
+    imageUrl: "/categories/study-focus.jpg"
+  },
+  { 
+    category: StreamCategory.INNOVATION_BUSINESS, 
+    title: "Innovation & Business", 
+    href: "/category/INNOVATION_BUSINESS",
+    imageUrl: "/categories/innovation-business.jpg"
+  },
 ];
 
 export const Results = async () => {
@@ -21,39 +45,41 @@ export const Results = async () => {
     HOMEPAGE_TAKE_PER_ROW
   );
 
-  const allEmpty = CATEGORY_ORDER.every(
-    (c) => (grouped.get(c.category) ?? []).length === 0
-  );
+  // Sort categories: categories with streams first (by stream count desc), then empty ones
+  const sortedCategories = [...CATEGORY_ORDER].sort((a, b) => {
+    const aStreams = grouped.get(a.category)?.length ?? 0;
+    const bStreams = grouped.get(b.category)?.length ?? 0;
+    
+    // If both have streams, sort by count (descending)
+    if (aStreams > 0 && bStreams > 0) {
+      return bStreams - aStreams;
+    }
+    
+    // Categories with streams come first
+    if (aStreams > 0 && bStreams === 0) return -1;
+    if (aStreams === 0 && bStreams > 0) return 1;
+    
+    // Both empty, maintain original order
+    return 0;
+  });
 
   return (
     <div className="space-y-12 px-2 md:px-6">
       <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Live Streams</h1>
 
-      {allEmpty && (
-        <div className="text-center py-16 text-muted-foreground text-sm">
-          <p>No live streams right now.</p>
-          <Link
-            href="/discover"
-            className="text-primary hover:underline font-medium mt-2 inline-block"
-          >
-            Explore all creators
-          </Link>
-        </div>
-      )}
-
-      {CATEGORY_ORDER.map(({ category, title, href }) => (
+      {sortedCategories.map(({ category, title, href, imageUrl }) => (
         <CategoryRow
           key={category}
           title={title}
           category={category}
           items={grouped.get(category) ?? []}
           showMoreHref={href}
+          categoryImageUrl={imageUrl}
         />
       ))}
     </div>
   );
 };
-
 
 export const ResultCardSkeleton = () => {
   return (

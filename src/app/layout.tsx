@@ -19,7 +19,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider appearance={{ baseTheme: dark }}>
-      <html lang="en" className="dark">
+      <html lang="en" className="dark bg-[#141517]">
         <body className={inter.className}>
           <Toaster theme="dark" position="bottom-center" />
           {children}
