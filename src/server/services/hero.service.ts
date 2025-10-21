@@ -54,6 +54,7 @@ export const getTopLiveStream = async () => {
   if (!stream) {
     return null;
   }
+  console.log("🔍 getTopLiveStream result:", stream?.user?.bio);
 
   return stream;
 };

@@ -92,7 +92,7 @@ export const HeroVideoPlayer = ({ hostIdentity, username }: HeroVideoPlayerProps
 
         {/* "LIVE" badge */}
         <div className="absolute top-4 left-4 z-20">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-rose-600 rounded-md">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#08AA49] rounded-md">
             <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
             <span className="text-white text-sm font-bold uppercase">Live</span>
           </div>
