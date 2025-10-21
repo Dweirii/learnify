@@ -9,7 +9,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface RecommendedProps {
   data: (User & {
-    stream: { isLive: boolean } | null;
+    stream: { 
+      isLive: boolean;
+      viewerCount: number;
+      id: string;
+    } | null;
   })[];
 };
 
@@ -36,6 +40,8 @@ export const Recommended = ({
             username={user.username}
             imageUrl={user.imageUrl}
             isLive={user.stream?.isLive}
+            viewerCount={user.stream?.viewerCount || 0}
+            streamId={user.stream?.id}
           />
         ))}
       </ul>

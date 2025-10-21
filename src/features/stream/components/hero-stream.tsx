@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Eye, Play, Users, Clock, TrendingUp } from "lucide-react"
+import { Play, Clock, TrendingUp } from "lucide-react"
 
 import { getTopLiveStream } from "@/server/services/hero.service"
 import { HeroVideoPlayer, HeroVideoPlayerSkeleton } from "./hero-video-player"
@@ -7,6 +7,7 @@ import { UserAvatar } from "@/components/shared/user-avatar"
 import { VerifiedMark } from "@/components/shared/verified-mark"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { HeroStreamRealTime } from "./hero-stream-realtime"
 import type { StreamCategory } from "@prisma/client"
 
 const formatCategory = (category: StreamCategory) => {
@@ -100,14 +101,7 @@ export const HeroStream = async () => {
 
               {/* Stats Row */}
               <div className="flex items-center gap-3 flex-wrap">
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-bold bg-background text-[#08AA49] transition-all duration-200 shadow-sm"
-                >
-                  <Users className="h-4 w-4" />
-                  <span>{stream.viewerCount.toLocaleString()}</span>
-                  <span className="text-xs opacity-75">viewers</span>
-                </Badge>
+                <HeroStreamRealTime streamId={stream.id} initialViewerCount={stream.viewerCount} />
 
                 <Badge
                   variant="outline"

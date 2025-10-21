@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { WebhookReceiver } from "livekit-server-sdk";
-
-import { db } from "@/lib/db";
+import { inngest } from "@/lib/inngest";
+import { logger, PerformanceTimer, extractRequestContext } from "@/lib/logger";
 
 const receiver = new WebhookReceiver(
   process.env.LIVEKIT_API_KEY!,
@@ -9,79 +9,114 @@ const receiver = new WebhookReceiver(
 );
 
 export async function POST(req: Request) {
-  const body = await req.text();
-  const headerPayload = await headers();
-  const authorization = headerPayload.get("Authorization");
+  const context = extractRequestContext(req);
+  
+  return await PerformanceTimer.time('livekit-webhook-processing', async () => {
+    try {
+      const body = await req.text();
+      const headerPayload = await headers();
+      const authorization = headerPayload.get("Authorization");
 
-  if (!authorization) {
-    return new Response("No authorization header", { status: 400 });
-  }
+      if (!authorization) {
+        logger.error("No authorization header", undefined, context);
+        return new Response("No authorization header", { status: 400 });
+      }
 
-  const event = await receiver.receive(body, authorization);
-
-  if (event.event === "ingress_started") {
-    await db.stream.update({
-      where: {
-        ingressId: event.ingressInfo?.ingressId,
-      },
-      data: {
-        isLive: true,
-      },
-    });
-  }
-
-  if (event.event === "ingress_ended") {
-    await db.stream.update({
-      where: {
-        ingressId: event.ingressInfo?.ingressId,
-      },
-      data: {
-        isLive: false,
-        viewerCount: 0,
-      },
-    });
-  }
-
-  // Handle participant joined - use room name (which is the userId)
-  if (event.event === "participant_joined") {
-    const roomName = event.room?.name;
-    
-    if (roomName) {
-      await db.stream.update({
-        where: {
-          userId: roomName,
-        },
-        data: {
-          viewerCount: {
-            increment: 1,
-          },
-        },
-      });
-    }
-  }
-
-  // Handle participant left - use room name (which is the userId)
-  if (event.event === "participant_left") {
-    const roomName = event.room?.name;
-    
-    if (roomName) {
-      const stream = await db.stream.findUnique({
-        where: { userId: roomName },
-        select: { id: true, viewerCount: true },
-      });
+      // Verify webhook authenticity
+      const event = await receiver.receive(body, authorization);
       
-      if (stream && stream.viewerCount > 0) {
-        await db.stream.update({
-          where: { id: stream.id },
+      logger.webhook(event.event, {
+        ...context,
+        eventType: event.event,
+        ingressId: event.ingressInfo?.ingressId,
+        roomName: event.room?.name,
+        participantIdentity: event.participant?.identity,
+      });
+
+    // Handle different event types by sending to Inngest
+    switch (event.event) {
+      case "ingress_started":
+        await inngest.send({
+          name: "livekit/stream.started",
           data: {
-            viewerCount: {
-              decrement: 1,
-            },
+            ingressId: event.ingressInfo?.ingressId,
+            timestamp: new Date().toISOString(),
           },
         });
-      }
-    }
-  }
+        logger.info(`Sent stream.started event to Inngest`, {
+          ...context,
+          ingressId: event.ingressInfo?.ingressId,
+        });
+        break;
 
-  return new Response("Webhook processed", { status: 200 });
+      case "ingress_ended":
+        await inngest.send({
+          name: "livekit/stream.ended",
+          data: {
+            ingressId: event.ingressInfo?.ingressId,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        logger.info(`Sent stream.ended event to Inngest`, {
+          ...context,
+          ingressId: event.ingressInfo?.ingressId,
+        });
+        break;
+
+      case "participant_joined":
+        const roomNameJoined = event.room?.name;
+        if (roomNameJoined) {
+          await inngest.send({
+            name: "livekit/participant.joined",
+            data: {
+              userId: roomNameJoined, // Room name is the userId
+              participantIdentity: event.participant?.identity,
+              participantSid: event.participant?.sid,
+              timestamp: new Date().toISOString(),
+            },
+          });
+          logger.info(`Sent participant.joined event to Inngest`, {
+            ...context,
+            userId: roomNameJoined,
+            participantIdentity: event.participant?.identity,
+          });
+        }
+        break;
+
+      case "participant_left":
+        const roomNameLeft = event.room?.name;
+        if (roomNameLeft) {
+          await inngest.send({
+            name: "livekit/participant.left",
+            data: {
+              userId: roomNameLeft, // Room name is the userId
+              participantIdentity: event.participant?.identity,
+              participantSid: event.participant?.sid,
+              timestamp: new Date().toISOString(),
+            },
+          });
+          logger.info(`Sent participant.left event to Inngest`, {
+            ...context,
+            userId: roomNameLeft,
+            participantIdentity: event.participant?.identity,
+          });
+        }
+        break;
+
+      default:
+        logger.warn(`Unhandled event type: ${event.event}`, context);
+    }
+
+      logger.info("Webhook processed successfully", context);
+
+      // Respond immediately - Inngest handles the rest!
+      return new Response("Webhook processed", { status: 200 });
+      
+    } catch (error) {
+      logger.error("Webhook processing failed", error as Error, context);
+      
+      // Even on error, respond quickly so LiveKit doesn't retry immediately
+      return new Response("Webhook error", { status: 500 });
+    }
+  });
 }

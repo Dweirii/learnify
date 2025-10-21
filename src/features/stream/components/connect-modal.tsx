@@ -79,7 +79,7 @@ export const ConnectModal = () => {
           </AlertDescription>
         </Alert>
         <div className="flex justify-between mt-4">
-          <DialogClose ref={closeRef} asChild>
+          <DialogClose ref={closeRef}>
             <Button variant="ghost">Cancel</Button>
           </DialogClose>
           <Button disabled={isPending} onClick={onSubmit} variant="default">

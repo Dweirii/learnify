@@ -60,7 +60,7 @@ export const BioModal = ({
             className="resize-none"
           />
           <div className="flex justify-between">
-            <DialogClose ref={closeRef} asChild>
+            <DialogClose ref={closeRef}>
               <Button type="button" variant="ghost">
                 Cancel
               </Button>

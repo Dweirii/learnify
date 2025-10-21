@@ -1,17 +1,28 @@
 "use client";
 
 import { LiveKitRoom } from "@livekit/components-react";
+import dynamic from "next/dynamic";
 
 import { cn } from "@/lib/utils";
 import { useChatSidebar } from "@/store/use-chat-sidebar";
 import { useViewerToken } from "@/hooks/use-viewer-token";
+import { ErrorBoundary } from "@/components/shared/error-boundary";
 
 import { InfoCard } from "./info-card";
 import { AboutCard } from "./about-card";
 import { ChatToggle } from "@/features/chat/components/chat-toggle";
-import { Chat, ChatSkeleton } from "@/features/chat/components/chat";
 import { Video, VideoSkeleton } from "./video";
 import { Header, HeaderSkeleton } from "./header";
+
+// 🚀 PERFORMANCE: Dynamic imports for heavy components
+const Chat = dynamic(() => import("@/features/chat/components/chat").then(mod => ({ default: mod.Chat })), {
+  loading: () => <div className="flex-1 bg-background">Loading chat...</div>,
+  ssr: false,
+});
+
+const ChatSkeleton = dynamic(() => import("@/features/chat/components/chat").then(mod => ({ default: mod.ChatSkeleton })), {
+  ssr: false,
+});
 
 type CustomStream = {
   id: string;
@@ -21,6 +32,7 @@ type CustomStream = {
   isLive: boolean;
   thumbnailUrl: string | null;
   name: string;
+  viewerCount: number;
 };
 
 type CustomUser = {
@@ -55,7 +67,12 @@ export const StreamPlayer = ({
   }
 
   return (
-    <>
+    <ErrorBoundary
+      resetKeys={[stream.id, user.id]}
+      onError={(error, errorInfo) => {
+        console.error('StreamPlayer error:', error, errorInfo);
+      }}
+    >
       {collapsed && (
         <div className="hidden lg:block fixed top-[100px] right-2 z-50">
           <ChatToggle />
@@ -70,31 +87,41 @@ export const StreamPlayer = ({
         )}
       >
         <div className="space-y-4 col-span-1 lg:col-span-2 xl:col-span-2 2xl:col-span-5 lg:overflow-y-auto hidden-scrollbar pb-10">
-          <Video
-            hostName={user.username}
-            hostIdentity={user.id}
-          />
-          <Header
-            hostName={user.username}
-            hostIdentity={user.id}
-            viewerIdentity={identity}
-            imageUrl={user.imageUrl}
-            isFollowing={isFollowing}
-            name={stream.name}
-          />
-          <InfoCard
-            hostIdentity={user.id}
-            viewerIdentity={identity}
-            name={stream.name}
-            thumbnailUrl={stream.thumbnailUrl}
-          />
-          <AboutCard
-            hostName={user.username}
-            hostIdentity={user.id}
-            viewerIdentity={identity}
-            bio={user.bio}
-            followedByCount={user._count.followedBy}
-          />
+          <ErrorBoundary resetKeys={[stream.id]}>
+            <Video
+              hostName={user.username}
+              hostIdentity={user.id}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary resetKeys={[stream.id, user.id]}>
+            <Header
+              hostName={user.username}
+              hostIdentity={user.id}
+              viewerIdentity={identity}
+              imageUrl={user.imageUrl}
+              isFollowing={isFollowing}
+              name={stream.name}
+              streamId={stream.id}
+              initialViewerCount={stream.viewerCount}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary resetKeys={[stream.id]}>
+            <InfoCard
+              hostIdentity={user.id}
+              viewerIdentity={identity}
+              name={stream.name}
+              thumbnailUrl={stream.thumbnailUrl}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary resetKeys={[user.id]}>
+            <AboutCard
+              hostName={user.username}
+              hostIdentity={user.id}
+              viewerIdentity={identity}
+              bio={user.bio}
+              followedByCount={user._count.followedBy}
+            />
+          </ErrorBoundary>
         </div>
         <div
           className={cn(
@@ -102,18 +129,20 @@ export const StreamPlayer = ({
             collapsed && "hidden"
           )}
         >
-          <Chat
-            viewerName={name}
-            hostName={user.username}
-            hostIdentity={user.id}
-            isFollowing={isFollowing}
-            isChatEnabled={stream.isChatEnabled}
-            isChatDelayed={stream.isChatDelayed}
-            isChatFollowersOnly={stream.isChatFollowersOnly}
-          />
+          <ErrorBoundary resetKeys={[stream.id, user.id]}>
+            <Chat
+              viewerName={name}
+              hostName={user.username}
+              hostIdentity={user.id}
+              isFollowing={isFollowing}
+              isChatEnabled={stream.isChatEnabled}
+              isChatDelayed={stream.isChatDelayed}
+              isChatFollowersOnly={stream.isChatFollowersOnly}
+            />
+          </ErrorBoundary>
         </div>
       </LiveKitRoom>
-    </>
+    </ErrorBoundary>
   );
 };
 

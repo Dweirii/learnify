@@ -14,7 +14,6 @@ type CategoryRowProps = {
 
 export default function CategoryRow({ 
   title, 
-  category, 
   items, 
   showMoreHref,
   categoryImageUrl 

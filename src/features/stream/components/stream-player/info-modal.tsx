@@ -138,7 +138,7 @@ export const InfoModal = ({
             )}
           </div>
           <div className="flex justify-between">
-            <DialogClose ref={closeRef} asChild>
+            <DialogClose ref={closeRef}>
               <Button type="button" variant="ghost">
                 Cancel
               </Button>

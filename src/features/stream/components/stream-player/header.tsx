@@ -2,13 +2,14 @@
 
 import { UserIcon } from "lucide-react";
 import { 
-  useParticipants, 
   useRemoteParticipant
 } from "@livekit/components-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 import { VerifiedMark } from "@/components/shared/verified-mark";
 import { UserAvatar, UserAvatarSkeleton } from "@/components/shared/user-avatar";
+import { useViewerCount, useStreamLiveStatus } from "@/hooks/use-stream-updates";
+import { ConnectionDot } from "@/components/shared/connection-indicator";
 
 import { Actions, ActionsSkeleton } from "./actions";
 
@@ -19,6 +20,8 @@ interface HeaderProps {
   viewerIdentity: string;
   isFollowing: boolean;
   name: string;
+  streamId?: string;
+  initialViewerCount?: number;
 };
 
 export const Header = ({
@@ -28,12 +31,19 @@ export const Header = ({
   viewerIdentity,
   isFollowing,
   name,
+  streamId,
+  initialViewerCount = 0,
 }: HeaderProps) => {
-  const participants = useParticipants();
   const participant = useRemoteParticipant(hostIdentity);
 
   const isLive = !!participant;
-  const participantCount = participants.length - 1;
+  
+  // Use real-time viewer count from database with correct initial value
+  const realtimeViewerCount = useViewerCount(streamId || "", initialViewerCount);
+  const displayViewerCount = realtimeViewerCount;
+  
+  // Get connection state for reconnecting indicator - always call hook
+  const liveStatus = useStreamLiveStatus(streamId || "", isLive);
 
   const hostAsViewer = `host-${hostIdentity}`;
   const isHost = viewerIdentity === hostAsViewer;
@@ -62,13 +72,34 @@ export const Header = ({
             <div className="font-semibold flex gap-x-1 items-center text-xs text-rose-500"> 
               <UserIcon className="h-4 w-4" />
               <p>
-                {participantCount} {participantCount === 1 ? "viewer" : "viewers"}
+                {displayViewerCount} {displayViewerCount === 1 ? "viewer" : "viewers"}
               </p>
+              {streamId && liveStatus.connectionState !== 'disconnected' && (
+                <div className="flex items-center gap-1 ml-1">
+                  <ConnectionDot state={liveStatus.connectionState} />
+                  {liveStatus.connectionState === 'reconnecting' && (
+                    <span className="text-xs text-yellow-500 animate-pulse">
+                      Reconnecting...
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           ) : (
-            <p className="font-semibold text-xs text-muted-foreground">
-              Offline
-            </p>
+            <div className="flex items-center gap-1">
+              {liveStatus.connectionState === 'reconnecting' ? (
+                <>
+                  <ConnectionDot state="reconnecting" />
+                  <p className="font-semibold text-xs text-yellow-500 animate-pulse">
+                    Reconnecting...
+                  </p>
+                </>
+              ) : (
+                <p className="font-semibold text-xs text-muted-foreground">
+                  Offline
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>

@@ -7,7 +7,7 @@ interface CategoryPlaceholderProps {
   href: string;
 }
 
-export const CategoryPlaceholder = ({ title, imageUrl, href }: CategoryPlaceholderProps) => {
+export const CategoryPlaceholder = ({ title, href }: CategoryPlaceholderProps) => {
   return (
     <Link href={href}>
       <div className="relative w-full h-[200px] md:h-[280px] rounded-lg overflow-hidden group cursor-pointer">

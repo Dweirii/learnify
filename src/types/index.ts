@@ -57,7 +57,11 @@ export type SerializedUserWithStream = {
   createdAt: Date;
   updatedAt: Date;
   externalUserId: string;
-  stream: { isLive: boolean } | null;
+  stream: { 
+    isLive: boolean;
+    viewerCount: number;
+    id: string;
+  } | null;
 };
 
 export type SerializedFollow = {

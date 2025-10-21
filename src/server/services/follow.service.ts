@@ -22,6 +22,8 @@ export const getFollowedUsers = async () => {
             stream: {
               select: {
                 isLive: true,
+                viewerCount: true,
+                id: true,
               },
             },
           },
@@ -57,6 +59,8 @@ export const getFollowedUsers = async () => {
         externalUserId: follow.following.externalUserId,
         stream: follow.following.stream ? {
           isLive: follow.following.stream.isLive,
+          viewerCount: follow.following.stream.viewerCount,
+          id: follow.following.stream.id,
         } : null,
       },
     }))));

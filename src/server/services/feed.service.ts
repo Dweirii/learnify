@@ -36,7 +36,6 @@ export const getLiveStreamsByCategory = async (
     }),
   };
 
-  const orderBy = [{ updatedAt: "desc" as const }, { id: "desc" as const }];
   const streams = await db.stream.findMany({
     where,
     select: {

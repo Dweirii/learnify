@@ -10,7 +10,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface FollowingProps {
   data: (Follow & { 
     following: User & {
-      stream: { isLive: boolean } | null;
+      stream: { 
+        isLive: boolean;
+        viewerCount: number;
+        id: string;
+      } | null;
     },
   })[];
 }
@@ -40,6 +44,8 @@ export const Following = ({
             username={follow.following.username}
             imageUrl={follow.following.imageUrl}
             isLive={follow.following.stream?.isLive}
+            viewerCount={follow.following.stream?.viewerCount || 0}
+            streamId={follow.following.stream?.id}
           />
         ))}
       </ul>

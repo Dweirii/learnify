@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { LiveKitRoom, VideoTrack, useRemoteParticipant, useTracks } from "@livekit/components-react";
 import { Track } from "livekit-client";
 import { Volume2, VolumeX, Maximize } from "lucide-react";

@@ -41,7 +41,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
           {items.map((it) => (
-            <StreamCard key={it.id} data={it as any} variant="grid" />
+            <StreamCard key={it.id} data={it} variant="grid" />
           ))}
         </div>
       )}

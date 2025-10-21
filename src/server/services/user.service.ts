@@ -20,6 +20,7 @@ export const getUserByUsername = async (username: string) => {
           isChatFollowersOnly: true,
           thumbnailUrl: true,
           name: true,
+          viewerCount: true,
         },
       },
       _count: {
@@ -44,6 +45,7 @@ export const getUserByUsername = async (username: string) => {
       isChatFollowersOnly: user.stream.isChatFollowersOnly,
       thumbnailUrl: user.stream.thumbnailUrl,
       name: user.stream.name,
+      viewerCount: user.stream.viewerCount,
     } : null,
     _count: {
       followedBy: user._count.followedBy,

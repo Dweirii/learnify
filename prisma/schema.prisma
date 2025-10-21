@@ -61,6 +61,8 @@ model Stream {
   @@index([userId])
   @@index([ingressId])
   @@index([viewerCount, updatedAt])
+  @@index([isLive, viewerCount]) // Optimized for live stream queries
+  @@index([isLive, updatedAt])  // Optimized for recent live streams
 }
 
 model Follow {

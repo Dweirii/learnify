@@ -9,12 +9,14 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { LiveBadge } from "@/components/shared/live-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useViewerCount } from "@/hooks/use-stream-updates";
 
 interface UserItemProps {
   username: string;
   imageUrl: string;
   isLive?: boolean;
   viewerCount?: number;
+  streamId?: string;
 }
 
 export const UserItem = ({
@@ -22,9 +24,14 @@ export const UserItem = ({
   imageUrl,
   isLive = false,
   viewerCount = 0,
+  streamId,
 }: UserItemProps) => {
   const pathname = usePathname();
   const { collapsed } = useSidebar();
+
+  // Use real-time viewer count if streamId is provided and stream is live
+  const realtimeViewerCount = useViewerCount(streamId || "", viewerCount);
+  const displayViewerCount = streamId && isLive ? realtimeViewerCount : viewerCount;
 
   const href = `/${username}`;
   const isActive = pathname === href;
@@ -51,7 +58,7 @@ export const UserItem = ({
             </span>
             {isLive && (
               <span className="text-xs text-muted-foreground">
-                {viewerCount} watching
+                {displayViewerCount} watching
               </span>
             )}
           </div>

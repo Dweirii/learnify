@@ -46,6 +46,8 @@ export const getRecommended = async () => {
         stream: {
           select: {
             isLive: true,
+            viewerCount: true,
+            id: true,
           },
         },
       },
@@ -66,6 +68,8 @@ export const getRecommended = async () => {
         stream: {
           select: {
             isLive: true,
+            viewerCount: true,
+            id: true,
           },
         },
       },
@@ -92,6 +96,8 @@ export const getRecommended = async () => {
     externalUserId: user.externalUserId,
     stream: user.stream ? {
       isLive: user.stream.isLive,
+      viewerCount: user.stream.viewerCount,
+      id: user.stream.id,
     } : null,
   }))));
 };
