@@ -50,9 +50,12 @@ export const HeroStream = async () => {
             <span className="font-medium">Most Popular</span>
           </div>
         </div>
-        <h2 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">
-          Featured Stream
-        </h2>
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-6 w-[3px] bg-[#0BA84E] rounded-full" />
+          <h2 className="text-xl font-semibold tracking-wide text-white/90 drop-shadow-[0_0_10px_rgba(0,255,120,0.15)]">
+            Featured Stream
+          </h2>
+        </div>
         <p className="text-lg text-muted-foreground">The most watched stream happening right now</p>
       </div>
 
