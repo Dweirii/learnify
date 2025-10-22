@@ -11,7 +11,7 @@ export const participantLeft = inngest.createFunction(
     retries: 3,
     
     debounce: {
-      period: "0.2s", // Reduced to 200ms for faster real-time updates
+      period: "1s", // Minimum required by Inngest
       key: "event.data.userId",
     },
   },
@@ -25,10 +25,21 @@ export const participantLeft = inngest.createFunction(
 
     // First, check current viewer count to prevent going negative
     const currentStream = await step.run("check-current-count", async () => {
-      return await db.stream.findUnique({
-        where: { userId: userId },
-        select: { id: true, viewerCount: true },
-      });
+      try {
+        const result = await db.stream.findUnique({
+          where: { userId: userId },
+          select: { id: true, viewerCount: true },
+        });
+        
+        if (result) {
+          logger.info(`[Inngest] Current viewer count for stream ${result.id}: ${result.viewerCount}`);
+        }
+        
+        return result;
+      } catch (error) {
+        logger.error(`[Inngest] Failed to check current viewer count for user ${userId}`, error as Error);
+        throw error;
+      }
     });
 
     if (!currentStream) {
@@ -39,28 +50,36 @@ export const participantLeft = inngest.createFunction(
     // Only decrement if count is greater than 0
     if (currentStream.viewerCount > 0) {
       const stream = await step.run("decrement-viewer-count", async () => {
-        return await db.$transaction(async (tx) => {
-          // Double-check count hasn't changed
-          const streamCheck = await tx.stream.findUnique({
-            where: { id: currentStream.id },
-            select: { viewerCount: true },
-          });
+        try {
+          return await db.$transaction(async (tx) => {
+            // Double-check count hasn't changed
+            const streamCheck = await tx.stream.findUnique({
+              where: { id: currentStream.id },
+              select: { viewerCount: true },
+            });
 
-          if (!streamCheck || streamCheck.viewerCount <= 0) {
-            logger.info(`[Inngest] Viewer count already at 0, skipping decrement`);
-            return currentStream;
-          }
+            if (!streamCheck || streamCheck.viewerCount <= 0) {
+              logger.info(`[Inngest] Viewer count already at 0, skipping decrement`);
+              return currentStream;
+            }
 
-          // Atomic decrement
-          return await tx.stream.update({
-            where: { id: currentStream.id },
-            data: {
-              viewerCount: {
-                decrement: 1,
+            // Atomic decrement
+            const result = await tx.stream.update({
+              where: { id: currentStream.id },
+              data: {
+                viewerCount: {
+                  decrement: 1,
+                },
               },
-            },
+            });
+            
+            logger.info(`[Inngest] Successfully decremented viewer count for stream ${result.id}`);
+            return result;
           });
-        });
+        } catch (error) {
+          logger.error(`[Inngest] Failed to decrement viewer count for stream ${currentStream.id}`, error as Error);
+          throw error;
+        }
       });
 
       logger.info(`[Inngest] Stream ${stream.id} viewer count: ${stream.viewerCount}`);

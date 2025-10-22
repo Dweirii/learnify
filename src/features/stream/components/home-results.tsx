@@ -1,9 +1,13 @@
+"use client";
+
 import { StreamCategory } from "@prisma/client";
-import { getLiveStreamsGroupedByCategory } from "@/server/services/feed.service";
 import CategoryRow from "./category-row";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ThumbnailSkeleton } from "@/components/shared/thumbnail";
 import { UserAvatarSkeleton } from "@/components/shared/user-avatar";
+import { useStreamList, StreamListItem } from "@/hooks/use-stream-list";
+import { useEffect, useState } from "react";
+import { HomeStreamResult } from "@/types";
 
 const HOMEPAGE_TAKE_PER_ROW = 12;
 
@@ -39,23 +43,49 @@ const CATEGORY_ORDER: {
   },
 ];
 
-export const Results = async () => {
-  const grouped = await getLiveStreamsGroupedByCategory(
-    CATEGORY_ORDER.map((c) => c.category),
-    HOMEPAGE_TAKE_PER_ROW
-  );
+interface ResultsProps {
+  initialStreams: Map<StreamCategory, StreamListItem[]>;
+}
 
-  // Sort categories: categories with streams first (by stream count desc), then empty ones
-  const sortedCategories = [...CATEGORY_ORDER].sort((a, b) => {
-    const aStreams = grouped.get(a.category)?.length ?? 0;
-    const bStreams = grouped.get(b.category)?.length ?? 0;
+export const Results = ({ initialStreams }: ResultsProps) => {
+  // State for each category's real-time streams
+  const [streamsByCategory, setStreamsByCategory] = useState<Map<StreamCategory, StreamListItem[]>>(initialStreams);
+
+  // Subscribe to real-time updates for ALL categories
+  const { streams: allStreams } = useStreamList({
+    initialStreams: Array.from(initialStreams.values()).flat(),
+  });
+
+  // Update streams grouped by category when real-time data changes
+  useEffect(() => {
+    const grouped = new Map<StreamCategory, StreamListItem[]>();
     
-    // If both have streams, sort by count (descending)
+    // Initialize all categories with empty arrays
+    CATEGORY_ORDER.forEach(({ category }) => {
+      grouped.set(category, []);
+    });
+    
+    // Group streams by category
+    allStreams.forEach((stream) => {
+      const category = stream.category as StreamCategory;
+      const existing = grouped.get(category) || [];
+      grouped.set(category, [...existing, stream]);
+    });
+    
+    setStreamsByCategory(grouped);
+  }, [allStreams]);
+
+  // Sort categories: categories with LIVE streams first (by live stream count desc), then empty ones
+  const sortedCategories = [...CATEGORY_ORDER].sort((a, b) => {
+    const aStreams = streamsByCategory.get(a.category)?.filter(s => s.isLive)?.length ?? 0;
+    const bStreams = streamsByCategory.get(b.category)?.filter(s => s.isLive)?.length ?? 0;
+    
+    // If both have live streams, sort by count (descending)
     if (aStreams > 0 && bStreams > 0) {
       return bStreams - aStreams;
     }
     
-    // Categories with streams come first
+    // Categories with live streams come first
     if (aStreams > 0 && bStreams === 0) return -1;
     if (aStreams === 0 && bStreams > 0) return 1;
     
@@ -70,7 +100,7 @@ export const Results = async () => {
           key={category}
           title={title}
           category={category}
-          items={grouped.get(category) ?? []}
+          items={(streamsByCategory.get(category) ?? []).filter(s => s.isLive) as HomeStreamResult[]}
           showMoreHref={href}
           categoryImageUrl={imageUrl}
         />

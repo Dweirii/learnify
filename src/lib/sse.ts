@@ -38,32 +38,54 @@ export interface StreamEvent {
 }
 
 /**
+ * Connection Types
+ */
+type ConnectionType = 'stream-specific' | 'stream-list' | 'all';
+
+interface ConnectionInfo {
+  streamId: string;
+  type: ConnectionType;
+  category?: string;
+  response: ReadableStreamDefaultController;
+  lastPing: number;
+}
+
+/**
  * SSE Connection Manager
  */
 class SSEConnectionManager {
-  private connections = new Map<string, {
-    streamId: string;
-    response: ReadableStreamDefaultController;
-    lastPing: number;
-  }>();
+  private connections = new Map<string, ConnectionInfo>();
 
-  addConnection(connectionId: string, streamId: string, controller: ReadableStreamDefaultController) {
+  addConnection(
+    connectionId: string,
+    streamId: string,
+    controller: ReadableStreamDefaultController,
+    type: ConnectionType = 'stream-specific',
+    category?: string
+  ) {
     this.connections.set(connectionId, {
       streamId,
+      type,
+      category,
       response: controller,
       lastPing: Date.now(),
     });
     
-    logger.info(`[SSE] Connection ${connectionId} added for stream ${streamId}`);
-    logger.info(`[SSE] Total connections: ${this.connections.size}`);
+    logger.info(`[SSE] Connection ${connectionId} added`, { 
+      type, 
+      streamId, 
+      category,
+      totalConnections: this.connections.size 
+    });
   }
 
   removeConnection(connectionId: string) {
     const connection = this.connections.get(connectionId);
     if (connection) {
       this.connections.delete(connectionId);
-      logger.info(`[SSE] Connection ${connectionId} removed`);
-      logger.info(`[SSE] Total connections: ${this.connections.size}`);
+      logger.info(`[SSE] Connection ${connectionId} removed`, {
+        totalConnections: this.connections.size
+      });
     }
   }
 
@@ -103,6 +125,34 @@ class SSEConnectionManager {
     logger.info(`[SSE] Event sent to ${sentCount} total connections`);
   }
 
+  /**
+   * 🚀 NEW: Send to stream-list subscribers
+   */
+  sendToStreamList(event: StreamEvent, category?: string) {
+    let sentCount = 0;
+    
+    for (const [connectionId, connection] of this.connections) {
+      // Only send to stream-list type connections
+      if (connection.type === 'stream-list') {
+        // If category filter is specified, check it matches
+        if (category && connection.category && connection.category !== category) {
+          continue;
+        }
+        
+        try {
+          const data = `data: ${JSON.stringify(event)}\n\n`;
+          connection.response.enqueue(new TextEncoder().encode(data));
+          sentCount++;
+        } catch (error) {
+          logger.error(`[SSE] Failed to send to connection ${connectionId}`, error as Error);
+          this.removeConnection(connectionId);
+        }
+      }
+    }
+    
+    logger.info(`[SSE] Stream list event sent to ${sentCount} connections`, { category });
+  }
+
   getConnectionCount(): number {
     return this.connections.size;
   }
@@ -112,6 +162,21 @@ class SSEConnectionManager {
     for (const connection of this.connections.values()) {
       if (connection.streamId === streamId) {
         count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * 🚀 NEW: Get stream-list connection count
+   */
+  getStreamListConnectionCount(category?: string): number {
+    let count = 0;
+    for (const connection of this.connections.values()) {
+      if (connection.type === 'stream-list') {
+        if (!category || connection.category === category) {
+          count++;
+        }
       }
     }
     return count;
@@ -126,7 +191,7 @@ export const sseManager = new SSEConnectionManager();
  * Publishes events to SSE clients
  */
 export class SSEEventPublisher {
-  static publishStreamStarted(streamId: string, userId: string, data: unknown) {
+  static publishStreamStarted(streamId: string, userId: string, data: any) {
     const event: StreamEvent = {
       type: 'stream.started',
       streamId,
@@ -136,11 +201,18 @@ export class SSEEventPublisher {
     };
 
     logger.info(`[SSE] Publishing stream.started event for stream ${streamId}`);
+    
+    // Send to specific stream viewers
     sseManager.sendToStream(streamId, event);
+    
+    // NEW: Send to stream-list subscribers
+    sseManager.sendToStreamList(event, data.category);
+    
+    // Emit to event emitter
     sseEmitter.emit('stream.started', event);
   }
 
-  static publishStreamEnded(streamId: string, userId: string, data: unknown) {
+  static publishStreamEnded(streamId: string, userId: string, data: any) {
     const event: StreamEvent = {
       type: 'stream.ended',
       streamId,
@@ -149,8 +221,20 @@ export class SSEEventPublisher {
       timestamp: new Date().toISOString(),
     };
 
-    logger.info(`[SSE] Publishing stream.ended event for stream ${streamId}`);
+    logger.info(`[SSE] Publishing stream.ended event for stream ${streamId}`, { 
+      streamId, 
+      userId, 
+      data,
+      eventType: event.type 
+    });
+    
+    // Send to specific stream viewers
     sseManager.sendToStream(streamId, event);
+    
+    // 🚀 NEW: Send to stream-list subscribers
+    sseManager.sendToStreamList(event, data.category);
+    
+    // Emit to event emitter
     sseEmitter.emit('stream.ended', event);
   }
 
@@ -212,7 +296,7 @@ class HeartbeatManager {
     this.isRunning = true;
     this.interval = setInterval(() => {
       this.sendHeartbeat();
-    }, 30000); // Send heartbeat every 30 seconds
+    }, 120000); // Send heartbeat every 2 minutes (reduced to prevent rate limiting)
     
     logger.info("[SSE] Heartbeat manager started");
   }

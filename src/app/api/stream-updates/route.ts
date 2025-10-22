@@ -9,33 +9,59 @@ import { logger } from "@/lib/logger";
  * Clients can subscribe to specific streams or all streams
  * 
  * Usage:
- * GET /api/stream-updates?streamId=abc123
- * GET /api/stream-updates (all streams)
+ * GET /api/stream-updates?streamId=abc123 (specific stream)
+ * GET /api/stream-updates?type=stream-list (all streams)
+ * GET /api/stream-updates?type=stream-list&category=CODING_TECHNOLOGY (category filter)
  */
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const streamId = searchParams.get('streamId');
   const userId = searchParams.get('userId');
+  const type = searchParams.get('type') || 'stream-specific';
+  const category = searchParams.get('category');
 
   // Generate unique connection ID
   const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-  logger.info(`[SSE] New connection ${connectionId} for stream: ${streamId || 'all'}`);
+  logger.info(`[SSE] New connection ${connectionId}`, { 
+    type, 
+    streamId: streamId || 'all',
+    category 
+  });
 
   // Create SSE stream
   const stream = new ReadableStream({
     start(controller) {
+      // Determine connection type
+      let connectionType: 'stream-specific' | 'stream-list' | 'all' = 'stream-specific';
+      let targetStreamId = streamId || 'all';
+
+      if (type === 'stream-list') {
+        connectionType = 'stream-list';
+        targetStreamId = 'stream-list';
+      } else if (!streamId) {
+        connectionType = 'all';
+      }
+
       // Add connection to manager
-      sseManager.addConnection(connectionId, streamId || 'all', controller);
+      sseManager.addConnection(
+        connectionId, 
+        targetStreamId, 
+        controller, 
+        connectionType,
+        category || undefined
+      );
 
       // Send initial connection confirmation
       const welcomeMessage = {
         type: 'connection.established',
-        streamId: streamId || 'all',
+        streamId: targetStreamId,
         userId: userId || 'anonymous',
         data: {
           connectionId,
+          connectionType,
+          category: category || 'all',
           message: 'Connected to real-time stream updates',
         },
         timestamp: new Date().toISOString(),
@@ -47,11 +73,14 @@ export async function GET(request: NextRequest) {
       // Send current connection stats
       const statsMessage = {
         type: 'connection.stats',
-        streamId: streamId || 'all',
+        streamId: targetStreamId,
         userId: userId || 'anonymous',
         data: {
           totalConnections: sseManager.getConnectionCount(),
           streamConnections: streamId ? sseManager.getStreamConnectionCount(streamId) : 0,
+          streamListConnections: type === 'stream-list' 
+            ? sseManager.getStreamListConnectionCount(category || undefined)
+            : 0,
         },
         timestamp: new Date().toISOString(),
       };
@@ -81,7 +110,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Health check endpoint for SSE service
+ * Manual event publishing endpoint (for testing/debugging)
  */
 export async function POST(request: NextRequest) {
   try {

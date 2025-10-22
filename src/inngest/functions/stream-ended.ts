@@ -33,27 +33,77 @@ export const streamEnded = inngest.createFunction(
   async ({ event, step }) => {
     const { ingressId } = event.data;
 
-    logger.info(`[Inngest] Processing stream ended for ingress: ${ingressId}`);
+    logger.info(`[Inngest] Processing stream ended for ingress: ${ingressId}`, {
+      eventType: event.name,
+      eventData: event.data,
+      timestamp: new Date().toISOString(),
+    });
 
     // Update database with atomic operation
     const stream = await step.run("update-stream-status", async () => {
-      return await db.stream.update({
-        where: {
-          ingressId: ingressId,
-        },
-        data: {
-          isLive: false,
-          viewerCount: 0, // Reset viewers when stream ends
-        },
-      });
+      try {
+        const result = await db.stream.update({
+          where: {
+            ingressId: ingressId,
+          },
+          data: {
+            isLive: false,
+            viewerCount: 0,
+            // Keep the stream in database but mark as offline
+            // Don't delete - this prevents flickering
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                imageUrl: true,
+                bio: true,
+                externalUserId: true,
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+          },
+        });
+        logger.info(`[Inngest] Successfully updated stream ${result.id} to ended`);
+        return result;
+      } catch (error) {
+        logger.error(`[Inngest] Failed to update stream status for ingress ${ingressId}`, error as Error);
+        throw error; // Re-throw to trigger retry
+      }
     });
 
     logger.info(`[Inngest] Stream ${stream.id} ended, viewers reset to 0`);
 
-        // Step 2: 🚀 OPTIMIZED - Smart cache invalidation (stream status changed)
+        // OPTIMIZED - Smart cache invalidation (stream status changed)
         await step.run("invalidate-cache", async () => {
             await CacheService.invalidateStreamStatusCache(stream.id, false);
             logger.info(`[Inngest] Stream status cache invalidated for stream ${stream.id}`);
+        });
+
+        // Publish SSE event for stream ended
+        await step.run("publish-sse-event", async () => {
+          const { SSEEventPublisher } = await import("@/lib/sse");
+          
+          const streamData = {
+            id: stream.id,
+            name: stream.name,
+            isLive: false,
+            thumbnailUrl: stream.thumbnailUrl,
+            category: stream.category,
+            user: stream.user,
+          };
+          
+          logger.info(`[Inngest] Publishing SSE stream.ended event`, { 
+            streamId: stream.id, 
+            userId: stream.userId,
+            data: streamData 
+          });
+          
+          SSEEventPublisher.publishStreamEnded(stream.id, stream.userId, streamData);
+          
+          logger.info(`[Inngest] SSE event published for stream ended ${stream.id}`);
         });
 
     return {

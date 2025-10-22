@@ -22,6 +22,13 @@ export async function POST(req: Request) {
         return new Response("No authorization header", { status: 400 });
       }
 
+      // Log the raw body for debugging (remove in production)
+      logger.info("Webhook body received", {
+        ...context,
+        bodyLength: body.length,
+        bodyPreview: body.substring(0, 200),
+      });
+
       // Verify webhook authenticity
       const event = await receiver.receive(body, authorization);
       
@@ -36,6 +43,10 @@ export async function POST(req: Request) {
     // Handle different event types by sending to Inngest
     switch (event.event) {
       case "ingress_started":
+        logger.info("Sending stream.started event to Inngest", {
+          ...context,
+          ingressId: event.ingressInfo?.ingressId,
+        });
         await inngest.send({
           name: "livekit/stream.started",
           data: {
@@ -50,6 +61,10 @@ export async function POST(req: Request) {
         break;
 
       case "ingress_ended":
+        logger.info("Sending stream.ended event to Inngest", {
+          ...context,
+          ingressId: event.ingressInfo?.ingressId,
+        });
         await inngest.send({
           name: "livekit/stream.ended",
           data: {

@@ -11,7 +11,7 @@ export const participantJoined = inngest.createFunction(
     retries: 3,
     
     debounce: {
-      period: "0.2s", // Reduced to 200ms for faster real-time updates
+      period: "1s", // Minimum required by Inngest
       key: "event.data.userId",
     },
   },
@@ -25,32 +25,40 @@ export const participantJoined = inngest.createFunction(
 
     // Increment viewer count atomically using transaction
     const stream = await step.run("increment-viewer-count", async () => {
-      return await db.$transaction(async (tx) => {
-        // First, get current stream to ensure it exists
-        const currentStream = await tx.stream.findUnique({
-          where: { userId: userId },
-          select: { id: true, viewerCount: true, isLive: true },
-        });
+      try {
+        return await db.$transaction(async (tx) => {
+          // First, get current stream to ensure it exists
+          const currentStream = await tx.stream.findUnique({
+            where: { userId: userId },
+            select: { id: true, viewerCount: true, isLive: true },
+          });
 
-        if (!currentStream) {
-          throw new Error(`Stream not found for user: ${userId}`);
-        }
+          if (!currentStream) {
+            throw new Error(`Stream not found for user: ${userId}`);
+          }
 
-        if (!currentStream.isLive) {
-          logger.info(`[Inngest] Stream ${currentStream.id} is not live, skipping viewer increment`);
-          return currentStream;
-        }
+          if (!currentStream.isLive) {
+            logger.info(`[Inngest] Stream ${currentStream.id} is not live, skipping viewer increment`);
+            return currentStream;
+          }
 
-        // Atomic increment
-        return await tx.stream.update({
-          where: { id: currentStream.id },
-          data: {
-            viewerCount: {
-              increment: 1,
+          // Atomic increment
+          const result = await tx.stream.update({
+            where: { id: currentStream.id },
+            data: {
+              viewerCount: {
+                increment: 1,
+              },
             },
-          },
+          });
+          
+          logger.info(`[Inngest] Successfully incremented viewer count for stream ${result.id}`);
+          return result;
         });
-      });
+      } catch (error) {
+        logger.error(`[Inngest] Failed to increment viewer count for user ${userId}`, error as Error);
+        throw error;
+      }
     });
 
     logger.info(`[Inngest] Stream ${stream.id} viewer count: ${stream.viewerCount}`);
