@@ -1,5 +1,6 @@
 import { EventEmitter } from "events";
 import { logger } from './logger';
+import { redisPubSub, RedisPubSubManager, PubSubEvent } from './redis-pubsub';
 
 /**
  * Server-Sent Events Manager
@@ -55,6 +56,64 @@ interface ConnectionInfo {
  */
 class SSEConnectionManager {
   private connections = new Map<string, ConnectionInfo>();
+  private redisInitialized = false;
+
+  constructor() {
+    this.initializeRedisSubscriptions();
+  }
+
+  private async initializeRedisSubscriptions() {
+    if (this.redisInitialized) return;
+    
+    try {
+      // Subscribe to global streams channel for cross-server events
+      await redisPubSub.subscribe(
+        RedisPubSubManager.getChannelName('streams'),
+        (event: PubSubEvent) => {
+          this.handleRedisEvent(event);
+        }
+      );
+      
+      this.redisInitialized = true;
+      logger.info('[SSE] Redis Pub/Sub subscriptions initialized');
+    } catch (error) {
+      logger.error('[SSE] Failed to initialize Redis subscriptions:', error as Error);
+    }
+  }
+
+  private handleRedisEvent(event: PubSubEvent) {
+    try {
+      // Convert Redis event to SSE event
+      const sseEvent: StreamEvent = {
+        type: event.type as any,
+        streamId: event.data.streamId || event.data.id,
+        userId: event.data.userId,
+        data: event.data,
+        timestamp: new Date(event.timestamp).toISOString(),
+      };
+
+      // Reduced logging for performance - only log errors
+
+      // Forward to appropriate SSE connections
+      switch (event.type) {
+        case 'stream.started':
+        case 'stream.ended':
+          // Send to stream-list subscribers
+          this.sendToStreamList(sseEvent, event.data.category);
+          break;
+        case 'viewer.joined':
+        case 'viewer.left':
+        case 'viewer.count.updated':
+          // Send to specific stream viewers
+          this.sendToStream(sseEvent.streamId, sseEvent);
+          break;
+        default:
+          // Reduced logging for performance
+      }
+    } catch (error) {
+      logger.error('[SSE] Failed to handle Redis event:', error as Error);
+    }
+  }
 
   addConnection(
     connectionId: string,
@@ -108,9 +167,10 @@ class SSEConnectionManager {
     logger.info(`[SSE] Event sent to ${sentCount} connections for stream ${streamId}`);
   }
 
-  sendToAll(event: StreamEvent) {
+  async sendToAll(event: StreamEvent) {
     let sentCount = 0;
     
+    // Send to local SSE connections
     for (const [connectionId, connection] of this.connections) {
       try {
         const data = `data: ${JSON.stringify(event)}\n\n`;
@@ -122,15 +182,30 @@ class SSEConnectionManager {
       }
     }
     
-    logger.info(`[SSE] Event sent to ${sentCount} total connections`);
+            // 🚀 NEW: Publish to Redis for other servers
+            try {
+              await redisPubSub.publish(
+                RedisPubSubManager.getChannelName('streams'),
+                event
+              );
+              // Reduced logging for performance
+            } catch (error) {
+              logger.error(`[SSE] Failed to publish to Redis:`, error as Error);
+            }
+    
+    // Reduced logging for performance - only log if no connections
+    if (sentCount === 0) {
+      logger.debug(`[SSE] Event sent to ${sentCount} local connections and published to Redis`);
+    }
   }
 
   /**
    * 🚀 NEW: Send to stream-list subscribers
    */
-  sendToStreamList(event: StreamEvent, category?: string) {
+  async sendToStreamList(event: StreamEvent, category?: string) {
     let sentCount = 0;
     
+    // Send to local stream-list connections
     for (const [connectionId, connection] of this.connections) {
       // Only send to stream-list type connections
       if (connection.type === 'stream-list') {
@@ -150,7 +225,23 @@ class SSEConnectionManager {
       }
     }
     
-    logger.info(`[SSE] Stream list event sent to ${sentCount} connections`, { category });
+            // 🚀 NEW: Publish to Redis for other servers (only for stream events)
+            if (event.type === 'stream.started' || event.type === 'stream.ended') {
+              try {
+                await redisPubSub.publish(
+                  RedisPubSubManager.getChannelName('streams'),
+                  event
+                );
+                // Reduced logging for performance
+              } catch (error) {
+                logger.error(`[SSE] Failed to publish stream list event to Redis:`, error as Error);
+              }
+            }
+    
+    // Reduced logging for performance - only log if no connections
+    if (sentCount === 0) {
+      logger.debug(`[SSE] Stream list event sent to ${sentCount} local connections and published to Redis`, { category });
+    }
   }
 
   getConnectionCount(): number {
@@ -192,7 +283,7 @@ export const sseManager = new SSEConnectionManager();
  */
 export class SSEEventPublisher {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static publishStreamStarted(streamId: string, userId: string, data: any) {
+  static async publishStreamStarted(streamId: string, userId: string, data: any) {
     const event: StreamEvent = {
       type: 'stream.started',
       streamId,
@@ -206,15 +297,15 @@ export class SSEEventPublisher {
     // Send to specific stream viewers
     sseManager.sendToStream(streamId, event);
     
-    // NEW: Send to stream-list subscribers
-    sseManager.sendToStreamList(event, data.category);
+    // NEW: Send to stream-list subscribers (now async)
+    await sseManager.sendToStreamList(event, data.category);
     
     // Emit to event emitter
     sseEmitter.emit('stream.started', event);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static publishStreamEnded(streamId: string, userId: string, data: any) {
+  static async publishStreamEnded(streamId: string, userId: string, data: any) {
     const event: StreamEvent = {
       type: 'stream.ended',
       streamId,
@@ -233,8 +324,8 @@ export class SSEEventPublisher {
     // Send to specific stream viewers
     sseManager.sendToStream(streamId, event);
     
-    // 🚀 NEW: Send to stream-list subscribers
-    sseManager.sendToStreamList(event, data.category);
+    // 🚀 NEW: Send to stream-list subscribers (now async)
+    await sseManager.sendToStreamList(event, data.category);
     
     // Emit to event emitter
     sseEmitter.emit('stream.ended', event);

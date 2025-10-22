@@ -52,6 +52,7 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMountedRef = useRef(true);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const buildSSEUrl = useCallback(() => {
     const params = new URLSearchParams();
@@ -69,9 +70,16 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
     try {
       const data = JSON.parse(event.data);
       
-      logger.info('[useStreamList] Received SSE event', { type: data.type });
+      // Reduced logging for performance - only log errors
   
-      switch (data.type) {
+      // Clear existing debounce timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      // Debounce rapid events to prevent flickering
+      debounceTimeoutRef.current = setTimeout(() => {
+        switch (data.type) {
         case 'stream.started':
           // Add new stream to the list with sorting
           setStreams((prev) => {
@@ -103,14 +111,9 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
   
         case 'stream.ended':
           // Update stream to offline instead of removing completely
-          logger.info('[useStreamList] Stream ended event received', { streamId: data.streamId });
+          // Reduced logging for performance
           setStreams((prev) => {
             const updated = prev.map(s => s.id === data.streamId ? { ...s, isLive: false, viewerCount: 0 } : s);
-            logger.info('[useStreamList] Updated streams after stream ended', { 
-              streamId: data.streamId, 
-              totalStreams: updated.length,
-              liveStreams: updated.filter(s => s.isLive).length 
-            });
             return updated;
           });
           break;
@@ -127,15 +130,16 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
           break;
   
         default:
-          logger.debug('[useStreamList] Unknown event type', { type: data.type });
-      }
+          // Reduced logging for performance
+        }
+      }, 1000); // 1 second debounce
     } catch (err) {
       logger.error('[useStreamList] Failed to parse SSE event', err as Error);
     }
   }, [category]);
   
   const handleOpen = useCallback(() => {
-    logger.info('[useStreamList] SSE connection established');
+    // Reduced logging for performance
     setIsConnected(true);
     setError(null);
     reconnectAttemptsRef.current = 0;
@@ -150,7 +154,7 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
     // Attempt reconnection
     if (autoReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
       const delay = reconnectInterval * Math.pow(2, reconnectAttemptsRef.current);
-      logger.info(`[useStreamList] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
+      // Reduced logging for performance
       
       reconnectTimeoutRef.current = setTimeout(() => {
         if (isMountedRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
@@ -174,7 +178,7 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
     }
   
     const url = buildSSEUrl();
-    logger.info(`[useStreamList] Connecting to SSE: ${url}`);
+    // Reduced logging for performance
   
     try {
       const eventSource = new EventSource(url);
@@ -191,7 +195,7 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
   
   const disconnect = useCallback(() => {
     if (eventSourceRef.current) {
-      logger.info('[useStreamList] Disconnecting from SSE');
+      // Reduced logging for performance
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
@@ -200,12 +204,17 @@ export function useStreamList(options: UseStreamListOptions): UseStreamListRetur
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
+
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
     
     setIsConnected(false);
   }, []);
   
   const refetch = useCallback(() => {
-    logger.info('[useStreamList] Refetching stream list');
+    // Reduced logging for performance
     disconnect();
     connect();
   }, [disconnect, connect]);

@@ -27,6 +27,7 @@ export async function POST(req: Request) {
         ...context,
         bodyLength: body.length,
         bodyPreview: body.substring(0, 200),
+        fullBody: body, // Log full body for debugging
       });
 
       // Verify webhook authenticity

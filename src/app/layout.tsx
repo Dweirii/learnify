@@ -1,9 +1,14 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import { dark } from '@clerk/themes'
+import { cacheWarmingService } from '@/server/services/cache-warming.service';
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner';
 import './globals.css'
+
+if (process.env.NODE_ENV === 'production') {
+  cacheWarmingService.start();
+}
 
 const inter = Inter({ subsets: ['latin'] })
 

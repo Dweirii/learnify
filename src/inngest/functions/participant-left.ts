@@ -8,10 +8,14 @@ export const participantLeft = inngest.createFunction(
   {
     id: "participant-left",
     name: "Handle Participant Left",
-    retries: 3,
+    retries: 5, // Increased retries for production
+    concurrency: {
+      limit: 10, // Prevent overwhelming the database
+      key: "event.data.userId",
+    },
     
     debounce: {
-      period: "1s", // Minimum required by Inngest
+      period: "2s", // Increased debounce for stability
       key: "event.data.userId",
     },
   },
@@ -63,22 +67,39 @@ export const participantLeft = inngest.createFunction(
               return currentStream;
             }
 
-            // Atomic decrement
+            // Atomic decrement with production-ready error handling
             const result = await tx.stream.update({
               where: { id: currentStream.id },
               data: {
                 viewerCount: {
                   decrement: 1,
                 },
+                updatedAt: new Date(), // Ensure updatedAt is refreshed
+              },
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    imageUrl: true,
+                    bio: true,
+                    externalUserId: true,
+                    createdAt: true,
+                    updatedAt: true,
+                  },
+                },
               },
             });
             
-            logger.info(`[Inngest] Successfully decremented viewer count for stream ${result.id}`);
+            logger.info(`[Inngest] Viewer count decremented for stream ${result.id}: ${streamCheck.viewerCount} → ${result.viewerCount}`);
             return result;
+          }, {
+            timeout: 10000, // 10 second timeout for production
+            isolationLevel: 'ReadCommitted', // Prevent dirty reads
           });
         } catch (error) {
           logger.error(`[Inngest] Failed to decrement viewer count for stream ${currentStream.id}`, error as Error);
-          throw error;
+          throw error; // Re-throw to trigger retry
         }
       });
 

@@ -8,10 +8,14 @@ export const participantJoined = inngest.createFunction(
   {
     id: "participant-joined",
     name: "Handle Participant Joined",
-    retries: 3,
+    retries: 5, // Increased retries for production
+    concurrency: {
+      limit: 10, // Prevent overwhelming the database
+      key: "event.data.userId",
+    },
     
     debounce: {
-      period: "1s", // Minimum required by Inngest
+      period: "2s", // Increased debounce for stability
       key: "event.data.userId",
     },
   },
@@ -42,22 +46,39 @@ export const participantJoined = inngest.createFunction(
             return currentStream;
           }
 
-          // Atomic increment
+          // Atomic increment with production-ready error handling
           const result = await tx.stream.update({
             where: { id: currentStream.id },
             data: {
               viewerCount: {
                 increment: 1,
               },
+              updatedAt: new Date(), // Ensure updatedAt is refreshed
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  imageUrl: true,
+                  bio: true,
+                  externalUserId: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
             },
           });
           
-          logger.info(`[Inngest] Successfully incremented viewer count for stream ${result.id}`);
+          logger.info(`[Inngest] Viewer count incremented for stream ${result.id}: ${currentStream.viewerCount} → ${result.viewerCount}`);
           return result;
+        }, {
+          timeout: 10000, // 10 second timeout for production
+          isolationLevel: 'ReadCommitted', // Prevent dirty reads
         });
       } catch (error) {
         logger.error(`[Inngest] Failed to increment viewer count for user ${userId}`, error as Error);
-        throw error;
+        throw error; // Re-throw to trigger retry
       }
     });
 

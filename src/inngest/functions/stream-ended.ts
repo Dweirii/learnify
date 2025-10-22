@@ -17,7 +17,15 @@ export const streamEnded = inngest.createFunction(
   {
     id: "stream-ended",
     name: "Handle Stream Ended",
-    retries: 3,
+    retries: 5,
+    debounce: {
+      period: "10s",
+      key: "event.data.ingressId",
+    },
+    concurrency: {
+      limit: 5,
+      key: "event.data.ingressId",
+    },
     
     // Cancel if another "stream-ended" event comes for same stream
     cancelOn: [
@@ -42,6 +50,64 @@ export const streamEnded = inngest.createFunction(
     // Update database with atomic operation
     const stream = await step.run("update-stream-status", async () => {
       try {
+        // First check if stream is already offline to prevent unnecessary updates
+        const existingStream = await db.stream.findUnique({
+          where: { ingressId },
+          select: { id: true, isLive: true },
+        });
+
+        if (!existingStream) {
+          throw new Error(`Stream with ingressId ${ingressId} not found`);
+        }
+
+        // Check if stream was recently updated to prevent rapid state changes
+        const recentUpdateThreshold = new Date(Date.now() - 10000); // 10 seconds ago
+        
+        if (existingStream.updatedAt && existingStream.updatedAt > recentUpdateThreshold) {
+          logger.info(`[Inngest] Stream ${existingStream.id} was recently updated, skipping to prevent flickering`, {
+            lastUpdated: existingStream.updatedAt,
+            threshold: recentUpdateThreshold,
+            timeSinceUpdate: Date.now() - existingStream.updatedAt.getTime()
+          });
+          return await db.stream.findUnique({
+            where: { ingressId },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  imageUrl: true,
+                  bio: true,
+                  externalUserId: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          });
+        }
+
+        // If already offline, skip update to prevent flickering
+        if (!existingStream.isLive) {
+          logger.info(`[Inngest] Stream ${existingStream.id} is already offline, skipping update`);
+          return await db.stream.findUnique({
+            where: { ingressId },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  imageUrl: true,
+                  bio: true,
+                  externalUserId: true,
+                  createdAt: true,
+                  updatedAt: true,
+                },
+              },
+            },
+          });
+        }
+
         const result = await db.stream.update({
           where: {
             ingressId: ingressId,
@@ -72,6 +138,9 @@ export const streamEnded = inngest.createFunction(
         logger.error(`[Inngest] Failed to update stream status for ingress ${ingressId}`, error as Error);
         throw error; // Re-throw to trigger retry
       }
+    }, {
+      timeout: 10000, // 10 second timeout for production
+      isolationLevel: 'ReadCommitted', // Prevent dirty reads
     });
 
     logger.info(`[Inngest] Stream ${stream.id} ended, viewers reset to 0`);
@@ -101,7 +170,7 @@ export const streamEnded = inngest.createFunction(
             data: streamData 
           });
           
-          SSEEventPublisher.publishStreamEnded(stream.id, stream.userId, streamData);
+          await SSEEventPublisher.publishStreamEnded(stream.id, stream.userId, streamData);
           
           logger.info(`[Inngest] SSE event published for stream ended ${stream.id}`);
         });
