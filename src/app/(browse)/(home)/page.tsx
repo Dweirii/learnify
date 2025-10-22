@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 
-import { Results, ResultsSkeleton } from "@/features/stream/components/home-results";
+import { Results } from "@/features/stream/components/home-results";
 import { HeroStream, HeroStreamSkeleton } from "@/features/stream/components/hero-stream";
 import { getLiveStreamsGroupedByCategory } from "@/server/services/feed.service";
 import { StreamCategory } from "@prisma/client";

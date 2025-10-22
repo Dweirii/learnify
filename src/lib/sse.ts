@@ -191,6 +191,7 @@ export const sseManager = new SSEConnectionManager();
  * Publishes events to SSE clients
  */
 export class SSEEventPublisher {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static publishStreamStarted(streamId: string, userId: string, data: any) {
     const event: StreamEvent = {
       type: 'stream.started',
@@ -212,6 +213,7 @@ export class SSEEventPublisher {
     sseEmitter.emit('stream.started', event);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   static publishStreamEnded(streamId: string, userId: string, data: any) {
     const event: StreamEvent = {
       type: 'stream.ended',

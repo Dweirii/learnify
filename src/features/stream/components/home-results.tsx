@@ -9,8 +9,6 @@ import { useStreamList, StreamListItem } from "@/hooks/use-stream-list";
 import { useEffect, useState } from "react";
 import { HomeStreamResult } from "@/types";
 
-const HOMEPAGE_TAKE_PER_ROW = 12;
-
 const CATEGORY_ORDER: { 
   category: StreamCategory; 
   title: string; 

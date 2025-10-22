@@ -17,18 +17,22 @@ const redisConfig = {
   port: parseInt(process.env.REDIS_PORT || "6379"),
   password: process.env.REDIS_PASSWORD,
   
-  // Connection pool settings
-  maxRetriesPerRequest: 3,
-  retryDelayOnFailover: 100,
+  // Connection pool settings - More Redis Cloud friendly
+  maxRetriesPerRequest: 2, // Reduced from 3 to prevent rate limiting
+  retryDelayOnFailover: 200, // Increased delay
   enableReadyCheck: true,
   
-  // Timeout settings
-  connectTimeout: 10000,
-  commandTimeout: 5000,
+  // Timeout settings - More generous for cloud connections
+  connectTimeout: 15000, // Increased from 10s to 15s
+  commandTimeout: 8000,  // Increased from 5s to 8s
   
   // Reconnection settings
   lazyConnect: true,
   keepAlive: 30000,
+  
+  // Redis Cloud specific settings
+  family: 4, // Force IPv4
+  db: 0, // Use default database
   
   // Development logging
   ...(process.env.NODE_ENV === "development" && {

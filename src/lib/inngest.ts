@@ -13,6 +13,7 @@ export const inngest = new Inngest({
   id: "learnify-app",
   name: "Learnify Streaming Platform",
   
-  // Event key for sending events (required in production)
-  eventKey: process.env.INNGEST_EVENT_KEY,
+  // For local development, we don't need event key
+  // For production, uncomment the line below:
+  // eventKey: process.env.INNGEST_EVENT_KEY,
 });

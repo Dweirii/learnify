@@ -63,6 +63,13 @@ model Stream {
   @@index([viewerCount, updatedAt])
   @@index([isLive, viewerCount]) // Optimized for live stream queries
   @@index([isLive, updatedAt])  // Optimized for recent live streams
+  @@index([category])                    // Single category queries
+  @@index([category, isLive])            // Category + live status
+  @@index([category, isLive, updatedAt]) // Homepage category rows (CRITICAL!)
+  @@index([category, isLive, viewerCount]) // Category + live + popular
+  @@index([isLive, viewerCount, updatedAt]) // Live streams sorted by popularity
+  @@index([name])                        // Stream name searches
+  @@index([updatedAt])  
 }
 
 model Follow {
@@ -79,6 +86,8 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+  @@index([followerId, followingId])
+  @@index([followingId, followerId])  
 }
 
 model Block {
@@ -92,4 +101,6 @@ model Block {
   @@unique([blockerId, blockedId])
   @@index([blockerId])
   @@index([blockedId])
+  @@index([blockerId, blockedId])
+  @@index([blockedId, blockerId]) 
 }
