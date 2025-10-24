@@ -29,10 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// ✅ Removed `livekit-server-sdk` import (server-only)
-// Use simple constants instead
-const RTMP = "1"; // corresponds to IngressInput.RTMP_INPUT
-const WHIP = "2"; // corresponds to IngressInput.WHIP_INPUT
+const RTMP = "1";
+const WHIP = "2";
 type IngressType = typeof RTMP | typeof WHIP;
 
 export const ConnectModal = () => {
@@ -46,7 +44,6 @@ export const ConnectModal = () => {
     setIsCheckingAuth(true);
     
     try {
-      // Check if user needs to re-authenticate
       const verification = await checkSessionVerification();
       
       if (verification.requiresReauth) {
@@ -55,7 +52,6 @@ export const ConnectModal = () => {
         return;
       }
       
-      // User is verified, proceed with key generation
       await generateKeys();
     } catch (error) {
       console.error("Auth check error:", error);
@@ -68,7 +64,6 @@ export const ConnectModal = () => {
     startTransition(() => {
       createIngress(parseInt(ingressType))
         .then(async () => {
-          // Mark session as verified after successful key generation
           await markSessionAsVerified();
           toast.success("Stream keys generated successfully");
           closeRef?.current?.click();
@@ -117,7 +112,7 @@ export const ConnectModal = () => {
               You may be asked to verify your identity for security.
             </AlertDescription>
           </Alert>
-          <div className="flex justify-between mt-4">
+          <div className="flex justify-end gap-2 mt-4">
             <DialogClose ref={closeRef}>
               <Button variant="ghost" className="text-gray-400 hover:text-white rounded-sm">
                 Cancel

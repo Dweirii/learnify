@@ -142,7 +142,7 @@ export function StreamKeysCard({ serverUrl, streamKey }: StreamKeysCardProps) {
           </div>
 
           {/* Connect Modal */}
-          <div className="flex justify-center pt-4">
+          <div className="flex justify-end pt-4">
             <ConnectModal />
           </div>
         </CardContent>

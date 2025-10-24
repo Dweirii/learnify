@@ -34,4 +34,36 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project Structure
+
+```
+learnify-app/
+├── docs/                    # Documentation files
+│   ├── FOLDER_STRUCTURE.md
+│   └── follow-service-optimization.md
+├── scripts/                 # Shell scripts for development and testing
+│   ├── README.md           # Scripts documentation
+│   ├── test-*.sh          # Testing scripts
+│   ├── debug-*.sh         # Debugging scripts
+│   └── *.sh              # Other utility scripts
+├── src/                    # Source code
+│   ├── app/               # Next.js app directory
+│   ├── components/        # Reusable UI components
+│   ├── features/          # Feature-specific components
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Utility libraries
+│   ├── server/            # Server-side code
+│   └── types/             # TypeScript type definitions
+├── prisma/                 # Database schema and migrations
+└── public/                # Static assets
+```
+
+## Scripts
+
+Development and testing scripts are located in the `scripts/` directory. See [scripts/README.md](./scripts/README.md) for detailed documentation.
+
+## Documentation
+
+Project documentation is located in the `docs/` directory.
+
 # learnify

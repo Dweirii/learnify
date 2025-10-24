@@ -15,6 +15,8 @@ learnify-app/
 ├── src/                    # Source code
 ├── public/                 # Static assets
 ├── prisma/                 # Database schema
+├── docs/                   # Documentation files
+├── scripts/                # Shell scripts for development and testing
 ├── package.json           # Dependencies & scripts
 └── README.md              # Project documentation
 ```
@@ -249,11 +251,48 @@ This structure is ready for:
 
 ---
 
+## 📚 **Documentation (`docs/`)**
+
+```
+docs/
+├── FOLDER_STRUCTURE.md              # This file - complete folder structure guide
+└── follow-service-optimization.md   # Service optimization documentation
+```
+
+**Purpose**: Centralized location for all project documentation, guides, and architectural decisions.
+
+---
+
+## 🔧 **Scripts (`scripts/`)**
+
+```
+scripts/
+├── README.md                        # Scripts documentation and usage guide
+├── test-*.sh                       # Testing scripts for various components
+├── debug-*.sh                      # Debugging and diagnostic scripts
+├── cache-*.sh                      # Cache-related testing scripts
+├── performance-*.sh                 # Performance testing and optimization
+├── production-*.sh                 # Production deployment and monitoring
+└── *.sh                           # Other utility and maintenance scripts
+```
+
+**Purpose**: All shell scripts for development, testing, debugging, and maintenance tasks.
+
+**Categories**:
+- **Testing**: Component and integration testing
+- **Debugging**: Diagnostic and troubleshooting tools
+- **Performance**: Performance testing and optimization
+- **Production**: Deployment and monitoring scripts
+- **Maintenance**: Database, cache, and service management
+
+---
+
 ## 📝 **Naming Conventions**
 
 - **Components**: PascalCase (`UserAvatar.tsx`)
 - **Files**: kebab-case for multi-word (`browse-navbar/`)
 - **Directories**: kebab-case (`user-management/`)
 - **Features**: singular nouns (`stream/`, `chat/`, `user/`)
+- **Scripts**: descriptive names with category prefixes (`test-`, `debug-`, `cache-`)
 
 This structure provides a solid foundation for your Learnify streaming application! 🎉

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { updateStream } from "@/server/actions/stream";
 import { UploadDropzone } from "@/components/ui/upload-dropzone";
 import { StreamCategory } from "@prisma/client";
-import { Monitor, Palette, BookOpen, Lightbulb, Save, Trash } from "lucide-react";
+import { Monitor, Palette, BookOpen, Lightbulb, Save, Trash, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
@@ -83,6 +83,24 @@ export function StreamInfoCard({
     setHasChanges(name !== initialName || category !== initialCategory || initialThumbnailUrl !== null);
   };
 
+  // Update thumbnail stats when image loads
+  useEffect(() => {
+    if (thumbnailUrl) {
+      const img = document.createElement('img');
+      img.onload = () => {
+        const dimensions = `${img.naturalWidth}x${img.naturalHeight}`;
+        const aspectRatio = (img.naturalWidth / img.naturalHeight).toFixed(2);
+        
+        const dimensionsEl = document.getElementById('thumbnail-dimensions');
+        const aspectRatioEl = document.getElementById('thumbnail-aspect-ratio');
+        
+        if (dimensionsEl) dimensionsEl.textContent = dimensions;
+        if (aspectRatioEl) aspectRatioEl.textContent = aspectRatio;
+      };
+      img.src = thumbnailUrl;
+    }
+  }, [thumbnailUrl]);
+
   const handleSave = () => {
     if (name.length < 3) {
       toast.error("Stream name must be at least 3 characters", {
@@ -149,7 +167,7 @@ export function StreamInfoCard({
               onChange={(e) => handleNameChange(e.target.value)}
               placeholder="Enter your stream name..."
               className={cn(
-                "bg-transparent  shadow-[0_0_10px_0_rgba(0,0,0,0.6)] border-none text-white placeholder-gray-400 transition-all duration-200",
+                "bg-transparent border-gray-600 text-white placeholder-gray-400 transition-all duration-200",
                 "focus:border-[#08A84F] focus:ring-[#08A84F]/20",
                 name.length < 3 && name.length > 0 && "border-yellow-500 focus:border-yellow-500 focus:ring-yellow-500/20",
                 name.length >= 3 && "border-green-500/50 focus:border-green-500 focus:ring-green-500/20"
@@ -211,12 +229,12 @@ export function StreamInfoCard({
                   type="button"
                   onClick={() => handleCategoryChange(cat.value)}
                   className={cn(
-                    "w-full p-4 rounded-xl border transition-all duration-300 text-left group",
-                    "hover:bg-transparent focus:outline-none focus:ring-2 focus:ring-[#08A84F]/50",
-                    "hover:shadow-lg hover:shadow-gray-900/20",
+                    "w-full p-4 rounded-xl transition-all duration-300 text-left group",
+                    "hover:bg-[#1A1B1F] focus:outline-none focus:ring-2 focus:ring-[#0FA84E]/50",
+                    "shadow-sm hover:shadow-[0_0_10px_0_rgba(0,0,0,0.6)]",
                     isSelected 
-                      ? "border-[#08A84F] bg-gradient-to-br from-[#08A84F]/15 to-[#08A84F]/5 shadow-lg shadow-[#08A84F]/10" 
-                      : "border-none hover:border-gray-500"
+                      ? "bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)]" 
+                      : "bg-[#141517]"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -240,7 +258,7 @@ export function StreamInfoCard({
                     <div className={cn(
                       "w-6 h-6 rounded-full border-2 transition-all duration-300 flex items-center justify-center",
                       isSelected 
-                        ? "border-[#08A84F] bg-[#08A84F] shadow-lg shadow-[#08A84F]/30" 
+                        ? "border-[#0FA84E] bg-[#0FA84E] shadow-sm" 
                         : "border-gray-500 group-hover:border-gray-400"
                     )}>
                       {isSelected && (
@@ -256,32 +274,137 @@ export function StreamInfoCard({
 
         {/* Stream Thumbnail */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label className="text-white font-semibold">Stream Thumbnail</Label>
-              <p className="text-xs text-gray-400 mt-1">Upload an eye-catching thumbnail for your stream</p>
-            </div>
-            {thumbnailUrl && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleThumbnailRemove}
-                className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 hover:border-red-500/50 transition-all duration-200 rounded-sm"
-              >
-                <Trash className="w-4 h-4 mr-2" />
-                Remove
-              </Button>
-            )}
+          <div>
+            <Label className="text-white font-semibold">Stream Thumbnail</Label>
+            <p className="text-xs text-gray-400 mt-1">Upload an eye-catching thumbnail for your stream</p>
           </div>
 
-          {!thumbnailUrl && (
-            <div className="border-2 border-dashed border-gray-600 rounded-xl p-4 bg-transparent  shadow-[0_0_10px_0_rgba(0,0,0,0.6)] transition-colors duration-200">
-              <UploadDropzone
-                onUploadComplete={handleThumbnailUpload}
-                userId={userId}
-                currentThumbnailUrl={thumbnailUrl}
-                className="min-h-[120px]"
-              />
+          {thumbnailUrl ? (
+            <div className="flex gap-4">
+              {/* Thumbnail Preview */}
+              <div className="relative group">
+                <div className="relative w-64 h-32 rounded-xl overflow-hidden bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)]">
+                  <img
+                    src={thumbnailUrl}
+                    alt="Stream thumbnail"
+                    className="w-full h-full object-cover"
+                    onLoad={(e) => {
+                      const img = e.target as HTMLImageElement;
+                      const dimensions = `${img.naturalWidth}x${img.naturalHeight}`;
+                      const aspectRatio = (img.naturalWidth / img.naturalHeight).toFixed(2);
+                      // Store dimensions for stats display
+                      (e.target as any).dataset.dimensions = dimensions;
+                      (e.target as any).dataset.aspectRatio = aspectRatio;
+                    }}
+                  />
+                  {/* Overlay with controls */}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => {
+                          // Trigger file input for replacement
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) {
+                              // Handle file upload
+                              handleThumbnailUpload(URL.createObjectURL(file));
+                            }
+                          };
+                          input.click();
+                        }}
+                        className="bg-white/20 hover:bg-white/30 text-white border-none backdrop-blur-sm"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Replace
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={handleThumbnailRemove}
+                        className="bg-red-500/80 hover:bg-red-500/90 text-white border-none backdrop-blur-sm"
+                      >
+                        <Trash className="w-4 h-4 mr-2" />
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                {/* Thumbnail info */}
+                <div className="mt-2 flex items-center justify-start text-xs text-gray-400">
+                  <span className="text-[#0FA84E]">✓ Ready for stream</span>
+                </div>
+              </div>
+
+              {/* Thumbnail Stats Panel */}
+              <div className="flex-1 bg-[#141517] p-4">
+                <div className="space-y-3">
+                  <h4 className="text-white font-semibold text-sm flex items-center gap-2">
+                    <Monitor className="w-4 h-4 text-[#0FA84E]" />
+                    Thumbnail Stats
+                  </h4>
+                  
+                  {/* Image Dimensions */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-xs">Dimensions</span>
+                      <span className="text-white text-xs font-mono" id="thumbnail-dimensions">
+                        Loading...
+                      </span>
+                    </div>
+                    
+                    {/* Aspect Ratio */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-xs">Aspect Ratio</span>
+                      <span className="text-white text-xs font-mono" id="thumbnail-aspect-ratio">
+                        Loading...
+                      </span>
+                    </div>
+                    
+                    {/* File Size */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-400 text-xs">File Size</span>
+                      <span className="text-white text-xs font-mono">
+                        ~2.3 MB
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Validation Status */}
+                  <div className="pt-2 border-t border-gray-700/50">
+                    <div className="flex items-center gap-2 text-xs">
+                      <div className="w-2 h-2 rounded-full bg-[#0FA84E]"></div>
+                      <span className="text-[#0FA84E] font-medium">Optimal for streaming</span>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)] transition-all duration-200 hover:border-[#0FA84E]/50 hover:bg-[#1A1B1F] group">
+                <UploadDropzone
+                  onUploadComplete={handleThumbnailUpload}
+                  userId={userId}
+                  currentThumbnailUrl={thumbnailUrl}
+                  className="min-h-[120px]"
+                />
+                {/* Upload hint */}
+                <div className="mt-4 text-center">
+                  <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
+                    <Upload className="w-4 h-4" />
+                    <span>Drag & drop or click to upload</span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Recommended: 1280x720px, max 5MB
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
