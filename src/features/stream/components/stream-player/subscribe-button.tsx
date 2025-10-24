@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bell } from "lucide-react";
+import { Crown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +29,7 @@ export const SubscribeButton = () => {
         className="w-full lg:w-auto gap-2 opacity-60 cursor-not-allowed"
         disabled
       >
-        <Bell className="h-4 w-4" />
+        <Crown className="h-4 w-4" />
         Subscribe
       </Button>
 
@@ -38,7 +38,7 @@ export const SubscribeButton = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Bell className="w-6 h-6 text-primary" />
+                <Crown className="w-6 h-6 text-primary" />
               </div>
               <span>Coming Soon!</span>
             </DialogTitle>

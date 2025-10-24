@@ -78,13 +78,13 @@ export const Header = ({
                 {name}
               </p>
               {/* Stream Categories - Rounded Button Style */}
-              {category && (
-                <div className="flex items-center gap-1 flex-wrap">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#1F2127] text-[#0FA84E]">
-                    {category.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              )}
+                      {category && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-[#1F2127] text-[#0FA84E]">
+                            {category.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      )}
               {/* Viewer Count */}
               {isLive && (
                 <div className="flex items-center gap-1 text-xs text-[#0FA84E] animate-pulse">
@@ -142,13 +142,13 @@ export const Header = ({
                 {name}
               </p>
               {/* Stream Categories - Rounded Button Style */}
-              {category && (
-                <div className="flex items-center gap-1 flex-wrap">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-[#1F2127] text-[#0FA84E]">
-                    {category.replace(/_/g, ' ')}
-                  </span>
-                </div>
-              )}
+                      {category && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          <span className="inline-flex items-center px-2 py-1 rounded-sm text-xs font-medium bg-[#1F2127] text-[#0FA84E]">
+                            {category.replace(/_/g, ' ')}
+                          </span>
+                        </div>
+                      )}
               {/* Viewer Count */}
               {isLive && (
                 <div className="flex items-center gap-1 text-xs text-[#0FA84E] animate-pulse">

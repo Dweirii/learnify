@@ -1,7 +1,5 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { toast } from "sonner";
 import { UserX } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,11 +12,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { onUnfollow } from "@/server/actions/follow";
 
 interface UnfollowDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onConfirm: () => void;
   hostIdentity: string;
   hostName: string;
   hostImageUrl: string;
@@ -27,23 +25,14 @@ interface UnfollowDialogProps {
 export const UnfollowDialog = ({
   isOpen,
   onClose,
+  onConfirm,
   hostIdentity,
   hostName,
   hostImageUrl,
 }: UnfollowDialogProps) => {
-  const [isPending, startTransition] = useTransition();
-
   const handleUnfollow = () => {
-    startTransition(() => {
-      onUnfollow(hostIdentity)
-        .then((data) => {
-          toast.success(`You have unfollowed ${data.following.username}`);
-          onClose();
-        })
-        .catch(() => {
-          toast.error("Something went wrong");
-        });
-    });
+    onConfirm();
+    onClose();
   };
 
   return (
@@ -79,7 +68,6 @@ export const UnfollowDialog = ({
           <Button
             variant="outline"
             onClick={onClose}
-            disabled={isPending}
             className="flex-1 border-gray-600 bg-transparent hover:bg-gray-800 text-gray-300 hover:text-white"
           >
             Cancel
@@ -87,10 +75,9 @@ export const UnfollowDialog = ({
           <Button
             variant="destructive"
             onClick={handleUnfollow}
-            disabled={isPending}
             className="flex-1 bg-red-600 hover:bg-red-700 text-white"
           >
-            {isPending ? "Unfollowing..." : "Unfollow"}
+            Unfollow
           </Button>
         </DialogFooter>
       </DialogContent>

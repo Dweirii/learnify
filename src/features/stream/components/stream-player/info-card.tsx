@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Pencil, Settings } from "lucide-react";
+import { Settings } from "lucide-react";
 import { StreamCategory } from "@prisma/client";
 import { useUser } from "@clerk/nextjs";
 
@@ -53,60 +53,53 @@ export const InfoCard = ({
 
   return (
     <div className="px-4">
-      <div className="rounded-xl bg-background">
-        <div className="flex items-center gap-x-2.5 p-4">
-          <div className="rounded-md bg-blue-600 p-2 h-auto w-auto">
-            <Pencil className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-sm lg:text-lg font-semibold capitalize">
-              Edit your stream info
-            </h2>
-            <p className="text-muted-foreground text-xs lg:text-sm">
-              Maximize your visibility
-            </p>
-          </div>
-          <Link href={`/u/${user?.username}/settings`}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </Link>
-        </div>
-        <Separator />
-        <div className="p-4 lg:p-6 space-y-4">
-          <div>
-            <h3 className="text-sm text-muted-foreground mb-2">
-              Name
-            </h3>
-            <p className="text-sm font-semibold">
-              {name}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm text-muted-foreground mb-2">
-              Category
-            </h3>
-            <p className="text-sm font-semibold">
-              {formatCategory(category)}
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm text-muted-foreground mb-2">
-              Thumbnail
-            </h3>
-            {thumbnailUrl ? (
-              <div className="relative aspect-video rounded-md overflow-hidden w-[200px] border border-white/10">
-                <Image
-                  fill
-                  src={thumbnailUrl}
-                  alt={name}
-                  className="object-cover"
-                />
+      <div className="rounded-xl bg-[#141517] border-none shadow-[0_-4px_20px_0_rgba(0,0,0,0.3)]">
+        <div className="p-4 lg:p-6">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-sm lg:text-lg font-semibold capitalize text-white mb-1">
+                Edit your stream info
+              </h2>
+              <p className="text-gray-400 text-xs lg:text-sm">
+                Maximize your visibility
+              </p>
+            </div>
+            <div className="border-t border-gray-700/50 pt-4"></div>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm text-gray-400 mb-2">
+                  Name
+                </h3>
+                <p className="text-sm font-semibold text-white">
+                  {name}
+                </p>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No thumbnail set</p>
-            )}
+              <div>
+                <h3 className="text-sm text-gray-400 mb-2">
+                  Category
+                </h3>
+                <p className="text-sm font-semibold text-white">
+                  {formatCategory(category)}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-sm text-gray-400 mb-2">
+                  Thumbnail
+                </h3>
+                {thumbnailUrl ? (
+                  <div className="relative aspect-video rounded-md overflow-hidden w-[200px] border border-gray-600">
+                    <Image
+                      fill
+                      src={thumbnailUrl}
+                      alt={name}
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">No thumbnail set</p>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
