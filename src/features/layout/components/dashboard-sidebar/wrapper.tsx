@@ -13,11 +13,15 @@ export const Wrapper = ({
   const { collapsed } = useCreatorSidebar((state) => state);
 
   return (
-    <aside className={cn(
-      "fixed left-0 flex flex-col w-[70px] lg:w-60 h-full bg-[#141517] z-50",
-      collapsed && "lg:w-[70px]"
-    )}>
-      {children}
+    <aside
+      className={cn(
+        "fixed left-0 w-60 h-full z-40 bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)] p-4 transition-all duration-300 ease-in-out",
+        collapsed && "w-[70px] px-2"
+      )}
+    >
+      <div className="h-full flex flex-col">
+        {children}
+      </div>
     </aside>
   );
 };
