@@ -6,6 +6,15 @@ import { ProfileTab } from "@/features/user/components/settings/profile-tab";
 import { StreamTab } from "@/features/stream/components/settings/stream-tab";
 import { StreamCategory } from "@prisma/client";
 
+type SocialPlatform = "GITHUB" | "YOUTUBE" | "LINKEDIN" | "INSTAGRAM" | "TWITTER" | "FACEBOOK";
+
+interface SocialLink {
+  id: string;
+  platform: SocialPlatform;
+  url: string;
+  order: number;
+}
+
 interface SettingsPageProps {
   user: {
     id: string;
@@ -22,9 +31,10 @@ interface SettingsPageProps {
     serverUrl: string;
     streamKey: string;
   };
+  socialLinks: SocialLink[];
 }
 
-export function SettingsPageClient({ user, stream }: SettingsPageProps) {
+export function SettingsPageClient({ user, stream, socialLinks }: SettingsPageProps) {
   const [activeTab, setActiveTab] = useState<"profile" | "stream">("profile");
 
   return (
@@ -43,7 +53,10 @@ export function SettingsPageClient({ user, stream }: SettingsPageProps) {
       {/* Tab Content */}
       <div className="mt-6">
         {activeTab === "profile" && (
-          <ProfileTab initialBio={user.bio} />
+          <ProfileTab 
+            initialBio={user.bio} 
+            initialSocialLinks={socialLinks}
+          />
         )}
         {activeTab === "stream" && (
           <StreamTab

@@ -58,15 +58,16 @@ export function ReauthModal({ isOpen, onClose, onSuccess }: ReauthModalProps) {
       } else {
         toast.error("Invalid password. Please try again.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Re-authentication error:", error);
       
-      if (error.errors?.[0]?.code === "form_password_incorrect") {
+      const errorObj = error as { errors?: Array<{ code?: string; message?: string }> };
+      if (errorObj.errors?.[0]?.code === "form_password_incorrect") {
         toast.error("Incorrect password. Please try again.");
-      } else if (error.errors?.[0]?.code === "form_password_pwned") {
+      } else if (errorObj.errors?.[0]?.code === "form_password_pwned") {
         toast.error("This password has been compromised. Please use a different password.");
       } else {
-        toast.error(error.errors?.[0]?.message || "Authentication failed");
+        toast.error(errorObj.errors?.[0]?.message || "Authentication failed");
       }
     } finally {
       setIsLoading(false);

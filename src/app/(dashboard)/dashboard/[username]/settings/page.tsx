@@ -1,5 +1,6 @@
 import { getSelf } from "@/server/services/auth.service";
 import { getStreamByUserId } from "@/server/services/stream.service";
+import { db } from "@/lib/db";
 import { SettingsPageClient } from "./settings-page";
 
 export default async function SettingsPage() {
@@ -9,6 +10,16 @@ export default async function SettingsPage() {
   if (!stream) {
     throw new Error("Stream not found");
   }
+
+  // Fetch user's social links
+  const socialLinks = await db.socialLink.findMany({
+    where: {
+      userId: self.id,
+    },
+    orderBy: {
+      order: 'asc',
+    },
+  });
 
   return (
     <SettingsPageClient
@@ -27,6 +38,7 @@ export default async function SettingsPage() {
         serverUrl: stream.serverUrl,
         streamKey: stream.streamKey,
       }}
+      socialLinks={socialLinks}
     />
   );
 }

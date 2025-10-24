@@ -21,7 +21,8 @@ model User {
   blocking  Block[] @relation("Blocking")
   blockedBy Block[] @relation("BlockedBy")
 
-  stream Stream?
+  stream      Stream?
+  socialLinks SocialLink[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -32,6 +33,15 @@ enum StreamCategory {
   CREATIVITY_ARTS
   STUDY_FOCUS
   INNOVATION_BUSINESS
+}
+
+enum SocialPlatform {
+  GITHUB
+  YOUTUBE
+  LINKEDIN
+  INSTAGRAM
+  TWITTER
+  FACEBOOK
 }
 
 model Stream {
@@ -103,4 +113,21 @@ model Block {
   @@index([blockedId])
   @@index([blockerId, blockedId])
   @@index([blockedId, blockerId]) 
+}
+
+model SocialLink {
+  id       String         @id @default(uuid())
+  userId   String
+  platform SocialPlatform
+  url      String         @db.Text
+  order    Int            @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, platform])
+  @@index([userId])
+  @@index([userId, order])
 }

@@ -101,12 +101,12 @@ export const ConnectModal = () => {
             value={ingressType}
             onValueChange={(value) => setIngressType(value as IngressType)}
           >
-            <SelectTrigger className="w-full bg-gray-800 border-gray-600 text-white">
+            <SelectTrigger className="w-full bg-[#141517] border-none text-white focus:ring-[#0FA84E]/20 shadow-sm">
               <SelectValue placeholder="Ingress Type" />
             </SelectTrigger>
-            <SelectContent className="bg-gray-800 border-gray-600">
-              <SelectItem value={RTMP} className="text-white hover:bg-gray-700">RTMP</SelectItem>
-              <SelectItem value={WHIP} className="text-white hover:bg-gray-700">WHIP</SelectItem>
+            <SelectContent className="bg-[#141517] border-none shadow-[0_0_10px_0_rgba(0,0,0,0.6)]">
+              <SelectItem value={RTMP} className="text-white hover:bg-[#1A1B1F] focus:bg-[#1A1B1F]">RTMP</SelectItem>
+              <SelectItem value={WHIP} className="text-white hover:bg-[#1A1B1F] focus:bg-[#1A1B1F]">WHIP</SelectItem>
             </SelectContent>
           </Select>
           <Alert className="bg-orange-500/10 border-orange-500/20 shadow-[0_0_10px_0_rgba(0,0,0,0.6)]">
