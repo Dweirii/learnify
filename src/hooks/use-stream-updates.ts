@@ -300,6 +300,7 @@ export function useStreamLiveStatusFrom(lastEvent: StreamEvent | null, initial =
     if (lastEvent.type === "stream.started") {
       if (offlineTimerRef.current) clearTimeout(offlineTimerRef.current);
       offlineTimerRef.current = null;
+      // Immediate optimistic update
       setIsLive(true);
       setState("connected");
     } else if (lastEvent.type === "stream.ended") {
@@ -308,7 +309,7 @@ export function useStreamLiveStatusFrom(lastEvent: StreamEvent | null, initial =
       offlineTimerRef.current = setTimeout(() => {
         setIsLive(false);
         setState("disconnected");
-      }, 5000);
+      }, 2000); // Reduced grace period for faster offline detection
     }
   }, [lastEvent]);
 

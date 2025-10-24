@@ -105,7 +105,7 @@ export function useStreamList(options: UseStreamListOptions = {}): UseStreamList
   // Debounced apply to avoid flicker on bursts
   const scheduleApply = useCallback((fn: () => void) => {
     if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
-    debounceTimeoutRef.current = setTimeout(fn, 300); // gentle debounce
+    debounceTimeoutRef.current = setTimeout(fn, 100); // faster debounce for better UX
   }, []);
 
   // Event handlers (named SSE events)
@@ -140,6 +140,11 @@ export function useStreamList(options: UseStreamListOptions = {}): UseStreamList
         updatedAt: String(incoming.user.updatedAt),
       };
     }
+    
+    // Immediate optimistic update for better UX
+    setStreams((prev) => upsertStream(prev, { ...incoming, isLive: true }));
+    
+    // Also schedule debounced update as backup
     scheduleApply(() => {
       setStreams((prev) => upsertStream(prev, { ...incoming, isLive: true }));
     });

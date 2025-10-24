@@ -19,7 +19,7 @@ export const streamEnded = inngest.createFunction(
     name: "Handle Stream Ended",
     retries: 5,
     debounce: {
-      period: "10s",
+      period: "2s",
       key: "event.data.ingressId",
     },
     concurrency: {
