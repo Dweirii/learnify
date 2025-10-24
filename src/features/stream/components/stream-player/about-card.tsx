@@ -5,6 +5,8 @@ import { useUser } from "@clerk/nextjs";
 import { VerifiedMark } from "@/components/shared/verified-mark";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
+import { SocialLinks } from "./social-links";
+import { SocialLink } from "@/types";
 
 interface AboutCardProps {
   hostName: string;
@@ -12,6 +14,7 @@ interface AboutCardProps {
   viewerIdentity: string;
   bio: string | null;
   followedByCount: number;
+  socialLinks?: SocialLink[];
 };
 
 export const AboutCard = ({
@@ -20,6 +23,7 @@ export const AboutCard = ({
   viewerIdentity,
   bio,
   followedByCount,
+  socialLinks = [],
 }: AboutCardProps) => {
   const hostAsViewer = `host-${hostIdentity}`;
   const isHost = viewerIdentity === hostAsViewer;
@@ -52,6 +56,15 @@ export const AboutCard = ({
         <p className="text-sm">
           {bio || "This user prefers to keep an air of mystery about them."}
         </p>
+        {/* Social Links */}
+        {socialLinks.length > 0 && (
+          <div className="pt-2">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-muted-foreground">Connect:</span>
+              <SocialLinks socialLinks={socialLinks} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -48,7 +48,7 @@ export const UserItem = ({
         imageUrl={imageUrl} 
         username={username} 
         isLive={isLive}
-        showBadge={isLive}
+        showBadge={false}
       />
 
       {!collapsed && (

@@ -43,7 +43,13 @@ type CustomUser = {
   bio: string | null;
   stream: CustomStream | null;
   imageUrl: string;
-  _count: { followedBy: number }
+  _count: { followedBy: number };
+  socialLinks?: Array<{
+    id: string;
+    platform: string;
+    url: string;
+    order: number;
+  }>;
 };
 
 interface StreamPlayerProps {
@@ -103,6 +109,7 @@ export const StreamPlayer = ({
               name={stream.name}
               streamId={stream.id}
               initialViewerCount={stream.viewerCount}
+              category={stream.category}
             />
           </ErrorBoundary>
           <ErrorBoundary resetKeys={[stream.id]}>
@@ -122,6 +129,7 @@ export const StreamPlayer = ({
               viewerIdentity={identity}
               bio={user.bio}
               followedByCount={user._count.followedBy}
+              socialLinks={user.socialLinks || []}
             />
           </ErrorBoundary>
         </div>

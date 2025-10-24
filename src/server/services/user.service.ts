@@ -24,6 +24,17 @@ export const getUserByUsername = async (username: string) => {
           category: true,
         },
       },
+      socialLinks: {
+        select: {
+          id: true,
+          platform: true,
+          url: true,
+          order: true,
+        },
+        orderBy: {
+          order: 'asc',
+        },
+      },
       _count: {
         select: {
           followedBy: true,
@@ -49,6 +60,7 @@ export const getUserByUsername = async (username: string) => {
       viewerCount: user.stream.viewerCount,
       category: user.stream.category,
     } : null,
+    socialLinks: user.socialLinks || [],
     _count: {
       followedBy: user._count.followedBy,
     },

@@ -3,6 +3,16 @@
 
 import { StreamCategory } from "@prisma/client";
 
+// Social platform types
+export type SocialPlatform = "GITHUB" | "YOUTUBE" | "LINKEDIN" | "INSTAGRAM" | "TWITTER" | "FACEBOOK";
+
+export type SocialLink = {
+  id: string;
+  platform: SocialPlatform;
+  url: string;
+  order: number;
+};
+
 export type SerializedUser = {
   id: string;
   username: string;
@@ -11,6 +21,7 @@ export type SerializedUser = {
   createdAt: Date;
   updatedAt: Date;
   externalUserId: string;
+  socialLinks?: SocialLink[];
 };
 
 export type SerializedStream = {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { toast } from "sonner";
 import { Heart } from "lucide-react";
 import { useTransition } from "react";
@@ -9,20 +10,30 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { onFollow, onUnfollow } from "@/server/actions/follow";
+import { onFollow } from "@/server/actions/follow";
+import { UnfollowDialog } from "./unfollow-dialog";
+import { ShareButton } from "./share-button";
+import { SubscribeButton } from "./subscribe-button";
 
 interface ActionsProps {
   hostIdentity: string;
+  hostName: string;
+  hostImageUrl: string;
   isFollowing: boolean;
   isHost: boolean;
+  streamUrl: string;
 };
 
 export const Actions = ({
   hostIdentity,
+  hostName,
+  hostImageUrl,
   isFollowing,
   isHost,
+  streamUrl,
 }: ActionsProps) => {
   const [isPending, startTransition] = useTransition();
+  const [isUnfollowDialogOpen, setIsUnfollowDialogOpen] = useState(false);
   const router = useRouter();
   const { userId } = useAuth();
 
@@ -34,15 +45,7 @@ export const Actions = ({
     });
   }
 
-  const handleUnfollow = () => {
-    startTransition(() => {
-      onUnfollow(hostIdentity)
-        .then((data) => toast.success(`You have unfollowed ${data.following.username}`))
-        .catch(() => toast.error("Something went wrong"))
-    });
-  }
-
-  const toggleFollow = () => {
+  const handleFollowClick = () => {
     if (!userId) {
       return router.push("/sign-in");
     }
@@ -50,31 +53,52 @@ export const Actions = ({
     if (isHost) return;
 
     if (isFollowing) {
-      handleUnfollow();
+      setIsUnfollowDialogOpen(true);
     } else {
       handleFollow();
     }
   }
 
   return (
-    <Button
-      disabled={isPending || isHost}
-      onClick={toggleFollow}
-      variant="default"
-      size="sm"
-      className="w-full lg:w-auto"
-    >
-      <Heart className={cn(
-        "h-4 w-4 mr-2",
-        isFollowing
-          ? "fill-white"
-          : "fill-none"
-      )} />
-      {isFollowing
-        ? "Unfollow"
-        : "Follow"
-      }
-    </Button>
+    <>
+      <div className="flex items-center gap-2 flex-wrap">
+        {/* Follow/Unfollow Button */}
+        <Button
+          disabled={isPending || isHost}
+          onClick={handleFollowClick}
+          size="sm"
+          className={cn(
+            "w-full lg:w-auto gap-2 transition-all duration-200",
+            isFollowing
+              ? "bg-muted hover:bg-muted/80 text-foreground"
+              : "bg-gradient-to-r from-[#0FA84E] to-[#0C8A3E] hover:from-[#0C8A3E] hover:to-[#0A7A35] text-white shadow-lg hover:shadow-xl"
+          )}
+        >
+          <Heart className={cn(
+            "h-4 w-4 transition-all duration-200",
+            isFollowing
+              ? "fill-muted-foreground"
+              : "fill-white"
+          )} />
+          {isFollowing ? "Unfollow" : "Follow"}
+        </Button>
+
+        {/* Share Button */}
+        <ShareButton hostName={hostName} streamUrl={streamUrl} />
+
+        {/* Subscribe Button */}
+        <SubscribeButton />
+      </div>
+
+      {/* Unfollow Confirmation Dialog */}
+      <UnfollowDialog
+        isOpen={isUnfollowDialogOpen}
+        onClose={() => setIsUnfollowDialogOpen(false)}
+        hostIdentity={hostIdentity}
+        hostName={hostName}
+        hostImageUrl={hostImageUrl}
+      />
+    </>
   )
 };
 
