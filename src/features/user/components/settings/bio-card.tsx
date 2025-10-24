@@ -71,16 +71,17 @@ export function BioCard({ initialBio }: BioCardProps) {
           </div>
         </div>
 
-        <div className="flex justify-end">
-          <Button
-            onClick={handleSave}
-            disabled={isPending || !hasChanges}
-            className="bg-[#08A84F] hover:bg-[#08A84F]/90 text-white"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {isPending ? "Saving..." : "Save Bio"}
-          </Button>
-        </div>
+        {hasChanges && (
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSave}
+              disabled={isPending || !hasChanges}
+              className="bg-[#0FA84E] hover:bg-[#0FA84E]/90 text-white shadow-lg hover:shadow-[#0FA84E]/25 transition-all duration-200 px-6 py-2.5 rounded-sm font-semibold"
+            >
+              {isPending ? "Saving..." : "Save Bio"}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

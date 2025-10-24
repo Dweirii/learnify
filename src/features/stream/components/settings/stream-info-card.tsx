@@ -266,7 +266,7 @@ export function StreamInfoCard({
                 variant="destructive"
                 size="sm"
                 onClick={handleThumbnailRemove}
-                className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 hover:border-red-500/50 transition-all duration-200"
+                className="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 hover:border-red-500/50 transition-all duration-200 rounded-sm"
               >
                 <Trash className="w-4 h-4 mr-2" />
                 Remove
@@ -287,21 +287,22 @@ export function StreamInfoCard({
         </div>
 
         {/* Save Button */}
-        <div className="flex justify-end pt-6 border-t border-gray-700/50">
-          <Button
-            onClick={handleSave}
-            disabled={isPending || !hasChanges}
-            className={cn(
-              "bg-gradient-to-r from-[#08A84F] to-[#08A84F]/90 hover:from-[#08A84F]/90 hover:to-[#08A84F] text-white",
-              "shadow-lg hover:shadow-[#08A84F]/25 transition-all duration-200",
-              "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none",
-              "px-6 py-2.5 rounded-xl font-semibold"
-            )}
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {isPending ? "Saving..." : "Save Changes"}
-          </Button>
-        </div>
+        {hasChanges && (
+          <div className="flex justify-end pt-6 border-t border-gray-700/50">
+            <Button
+              onClick={handleSave}
+              disabled={isPending || !hasChanges}
+              className={cn(
+                "bg-[#0FA84E] hover:bg-[#0FA84E]/90 text-white",
+                "shadow-lg hover:shadow-[#0FA84E]/25 transition-all duration-200",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none",
+                "px-6 py-2.5 rounded-sm font-semibold"
+              )}
+            >
+              {isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

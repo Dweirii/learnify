@@ -17,17 +17,17 @@ export const Navigation = () => {
   const routes = [
     {
       label: "Stream",
-      href: `/u/${user?.username}`,
+      href: `/dashboard/${user?.username}`,
       icon: Fullscreen,
     },
     {
       label: "Settings",
-      href: `/u/${user?.username}/settings`,
+      href: `/dashboard/${user?.username}/settings`,
       icon: Settings,
     },
     {
       label: "Community",
-      href: `/u/${user?.username}/community`,
+      href: `/dashboard/${user?.username}/community`,
       icon: Users,
     },
   ];

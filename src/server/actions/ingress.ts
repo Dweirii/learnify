@@ -9,6 +9,8 @@ import {
 
 import { db } from "@/lib/db";
 import { getSelf } from "@/server/services/auth.service";
+import { rateLimitService } from "@/server/services/rate-limit.service";
+import { logger } from "@/lib/logger";
 import { revalidatePath } from "next/cache";
 
 // ✅ Initialize LiveKit clients (server-only)
@@ -53,6 +55,18 @@ const resolveIngressType = (value: string | number): IngressInput => {
 // ✅ Main action
 export const createIngress = async (ingressType: string | number) => {
   const self = await getSelf();
+
+  // Check rate limit for stream key generation
+  const rateLimitResult = await rateLimitService.checkStreamKeyGenerationRateLimit(self.id);
+  
+  if (!rateLimitResult.allowed) {
+    const retryAfterMinutes = Math.ceil((rateLimitResult.retryAfter || 0) / 60);
+    logger.warn('[Ingress] Rate limit exceeded for stream key generation', {
+      userId: self.id,
+      retryAfter: rateLimitResult.retryAfter,
+    });
+    throw new Error(`Too many key generation attempts. Please try again in ${retryAfterMinutes} minutes.`);
+  }
 
   await resetIngresses(self.id);
 

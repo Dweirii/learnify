@@ -74,6 +74,12 @@ export class RateLimitService {
       maxRequests: 100, // 100 actions per minute
     });
 
+    // Stream key generation (sensitive operation)
+    this.configs.set('stream-key-generation', {
+      windowMs: 60 * 60 * 1000, // 1 hour
+      maxRequests: 3, // 3 key generations per hour per user
+    });
+
     logger.info('[RateLimit] Default configurations loaded');
   }
 
@@ -227,6 +233,10 @@ export class RateLimitService {
 
   async checkUserActionsRateLimit(identifier: string): Promise<RateLimitResult> {
     return this.checkRateLimit(identifier, 'user-actions');
+  }
+
+  async checkStreamKeyGenerationRateLimit(identifier: string): Promise<RateLimitResult> {
+    return this.checkRateLimit(identifier, 'stream-key-generation');
   }
 
   // Configuration management

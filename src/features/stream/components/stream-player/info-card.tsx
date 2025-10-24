@@ -45,7 +45,7 @@ export const InfoCard = ({
       case 'INNOVATION_BUSINESS':
         return 'Innovation & Business';
       default:
-        return cat.toLowerCase().replace(/_/g, ' ');
+        return String(cat).toLowerCase().replace(/_/g, ' ');
     }
   };
 

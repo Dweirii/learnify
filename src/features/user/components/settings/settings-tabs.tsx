@@ -16,7 +16,7 @@ export function SettingsTabs({ activeTab, onTabChange }: SettingsTabsProps) {
           className={cn(
             "px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2",
             activeTab === "profile"
-              ? "border-[#08A84F] text-white"
+              ? "border-[#0FA84E] text-white"
               : "border-transparent text-gray-400 hover:text-gray-300"
           )}
         >
@@ -27,7 +27,7 @@ export function SettingsTabs({ activeTab, onTabChange }: SettingsTabsProps) {
           className={cn(
             "px-6 py-3 text-sm font-medium transition-all duration-200 border-b-2",
             activeTab === "stream"
-              ? "border-[#08A84F] text-white"
+              ? "border-[#0FA84E] text-white"
               : "border-transparent text-gray-400 hover:text-gray-300"
           )}
         >
