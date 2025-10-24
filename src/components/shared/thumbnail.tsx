@@ -9,6 +9,7 @@ interface ThumbnailProps {
   fallback: string;
   isLive: boolean;
   username: string;
+  viewerCount?: number;
 };
 
 export const Thumbnail = ({ 
@@ -16,7 +17,8 @@ export const Thumbnail = ({
   fallback,
   isLive,
   username,
- }: ThumbnailProps) => {
+  viewerCount = 0,
+}: ThumbnailProps) => {
   let content;
 
   if (!src) {
@@ -48,7 +50,11 @@ export const Thumbnail = ({
       {content}
       {isLive && src && (
         <div className="absolute top-2 left-2 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform">
-          <LiveBadge />
+          <LiveBadge 
+            showViewerCount={true}
+            viewerCount={viewerCount}
+            size="sm"
+          />
         </div>
       )}
     </div>

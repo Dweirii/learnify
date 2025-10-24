@@ -4,8 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import { 
   Fullscreen,
-  KeyRound,
-  MessageSquare,
+  Settings,
   Users,
 } from "lucide-react";
 
@@ -22,14 +21,9 @@ export const Navigation = () => {
       icon: Fullscreen,
     },
     {
-      label: "Keys",
-      href: `/u/${user?.username}/keys`,
-      icon: KeyRound,
-    },
-    {
-      label: "Chat",
-      href: `/u/${user?.username}/chat`,
-      icon: MessageSquare,
+      label: "Settings",
+      href: `/u/${user?.username}/settings`,
+      icon: Settings,
     },
     {
       label: "Community",
@@ -41,7 +35,7 @@ export const Navigation = () => {
   if (!user?.username) {
     return (
       <ul className="space-y-2">
-        {[...Array(4)].map((_, i) => (
+        {[...Array(3)].map((_, i) => (
           <NavItemSkeleton key={i} />
         ))}
       </ul>

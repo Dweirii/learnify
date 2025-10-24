@@ -2,6 +2,7 @@
 
 import { LiveKitRoom } from "@livekit/components-react";
 import dynamic from "next/dynamic";
+import { StreamCategory } from "@prisma/client";
 
 import { cn } from "@/lib/utils";
 import { useChatSidebar } from "@/store/use-chat-sidebar";
@@ -33,6 +34,7 @@ type CustomStream = {
   thumbnailUrl: string | null;
   name: string;
   viewerCount: number;
+  category: StreamCategory | null;
 };
 
 type CustomUser = {
@@ -109,6 +111,8 @@ export const StreamPlayer = ({
               viewerIdentity={identity}
               name={stream.name}
               thumbnailUrl={stream.thumbnailUrl}
+              category={stream.category}
+              isLive={stream.isLive}
             />
           </ErrorBoundary>
           <ErrorBoundary resetKeys={[user.id]}>

@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import { VerifiedMark } from "@/components/shared/verified-mark";
-
-import { BioModal } from "./bio-modal";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 
 interface AboutCardProps {
   hostName: string;
@@ -21,6 +23,7 @@ export const AboutCard = ({
 }: AboutCardProps) => {
   const hostAsViewer = `host-${hostIdentity}`;
   const isHost = viewerIdentity === hostAsViewer;
+  const { user } = useUser();
 
   const followedByLabel = followedByCount === 1 ? "follower" : "followers";
 
@@ -33,7 +36,12 @@ export const AboutCard = ({
             <VerifiedMark />
           </div>
           {isHost && (
-            <BioModal initialValue={bio} />
+            <Link href={`/u/${user?.username}/settings`}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Settings className="h-4 w-4" />
+                Edit Bio
+              </Button>
+            </Link>
           )}
         </div>
         <div className="text-sm text-muted-foreground">

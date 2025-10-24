@@ -21,6 +21,7 @@ export const getUserByUsername = async (username: string) => {
           thumbnailUrl: true,
           name: true,
           viewerCount: true,
+          category: true,
         },
       },
       _count: {
@@ -46,6 +47,7 @@ export const getUserByUsername = async (username: string) => {
       thumbnailUrl: user.stream.thumbnailUrl,
       name: user.stream.name,
       viewerCount: user.stream.viewerCount,
+      category: user.stream.category,
     } : null,
     _count: {
       followedBy: user._count.followedBy,

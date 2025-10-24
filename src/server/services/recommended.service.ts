@@ -60,7 +60,8 @@ export const getRecommended = async () => {
         {
           createdAt: "desc"
         },
-      ]
+      ],
+      take: 10, // Limit results to prevent long queries
     })
   } else {
     users = await db.user.findMany({
@@ -82,7 +83,8 @@ export const getRecommended = async () => {
         {
           createdAt: "desc"
         },
-      ]
+      ],
+      take: 10, // Limit results to prevent long queries
     });
   }
 

@@ -17,22 +17,36 @@ declare global {
 export const db = globalThis.prisma || new PrismaClient({
   // Log queries in development
   log: process.env.NODE_ENV === "development" 
-    ? ["query", "error", "warn"] 
+    ? ["error", "warn"] 
     : ["error"],
   
   // Error formatting for better debugging
   errorFormat: "pretty",
   
-  // Production optimizations
-  ...(process.env.NODE_ENV === "production" && {
-    // Advanced connection pooling for production
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
+  // Connection pool configuration
+  datasources: {
+    db: {
+      url: process.env.DATABASE_URL + (process.env.NODE_ENV === "development" 
+        ? "?connection_limit=5&pool_timeout=20" 
+        : "?connection_limit=20&pool_timeout=60"),
     },
-  }),
+  },
 });
 
 // Prevent multiple instances in development
 if (process.env.NODE_ENV !== "production") globalThis.prisma = db;
+
+// Graceful shutdown handling
+process.on('beforeExit', async () => {
+  await db.$disconnect();
+});
+
+process.on('SIGINT', async () => {
+  await db.$disconnect();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  await db.$disconnect();
+  process.exit(0);
+});

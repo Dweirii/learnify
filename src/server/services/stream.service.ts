@@ -11,6 +11,7 @@ export const getStreamByUserId = async (userId: string) => {
     isChatEnabled: stream.isChatEnabled,
     isChatDelayed: stream.isChatDelayed,
     isChatFollowersOnly: stream.isChatFollowersOnly,
+    category: stream.category,
     createdAt: stream.createdAt.toISOString(),
     updatedAt: stream.updatedAt.toISOString(),
     userId: stream.userId,
