@@ -44,14 +44,10 @@ export const streamStarted = inngest.createFunction(
                 });
 
                 if (!existingStream) {
-                    logger.error(`[Inngest] Stream with ingressId ${ingressId} not found in database`, {
-                        ingressId,
-                        availableStreams: await db.stream.findMany({
-                            select: { id: true, ingressId: true, userId: true, name: true },
-                            take: 5
-                        })
-                    });
-                    throw new Error(`Stream with ingressId ${ingressId} not found`);
+                    logger.error(`[Inngest] Stream with ingressId ${ingressId} not found in database`, new Error(`Stream not found: ${ingressId}`));
+                    const error = new Error(`Stream with ingressId ${ingressId} not found`);
+                    (error as Error & { ingressId?: string }).ingressId = ingressId;
+                    throw error;
                 }
 
                 // Check if stream was recently updated to prevent rapid state changes
@@ -125,10 +121,12 @@ export const streamStarted = inngest.createFunction(
                 logger.error(`[Inngest] Failed to update stream status for ingress ${ingressId}`, error as Error);
                 throw error; // Re-throw to trigger retry
             }
-        }, {
-            timeout: 10000, // 10 second timeout for production
-            isolationLevel: 'ReadCommitted', // Prevent dirty reads
         });
+
+        if (!stream) {
+            logger.error(`[Inngest] Stream not found for ingress ${ingressId}`);
+            return { success: false, error: "Stream not found" };
+        }
 
         logger.info(`[Inngest] Stream ${stream.id} is now live`);
 
@@ -162,7 +160,7 @@ export const streamStarted = inngest.createFunction(
                         },
                     },
                 }); // ✅ Fixed: Added missing semicolon!
-            
+                
                 if (fullStream) {
                     await SSEEventPublisher.publishStreamStarted(stream.id, stream.userId, {
                         id: fullStream.id,

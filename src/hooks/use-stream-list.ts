@@ -15,17 +15,19 @@ export interface StreamListItem {
     imageUrl: string;
     bio: string | null;
     externalUserId: string;
-    createdAt: Date;
-    updatedAt: Date;
+    createdAt: string | Date; // normalized to string on wire
+    updatedAt: string | Date; // normalized to string on wire
   };
+  // You referenced viewerCount in stream.ended handling:
+  viewerCount?: number;
 }
 
 interface UseStreamListOptions {
   category?: string;
-  initialStreams: StreamListItem[];
+  initialStreams?: StreamListItem[];
   autoReconnect?: boolean;
-  reconnectInterval?: number;
-  maxReconnectAttempts?: number;
+  reconnectInterval?: number;    // base ms
+  maxReconnectAttempts?: number; // max tries before giving up
 }
 
 interface UseStreamListReturn {
@@ -35,205 +37,267 @@ interface UseStreamListReturn {
   refetch: () => void;
 }
 
-export function useStreamList(options: UseStreamListOptions): UseStreamListReturn {
+type SSEPayload = {
+  type: string;
+  streamId?: string;
+  userId?: string;
+  data?: Record<string, unknown>;
+  timestamp?: string;
+};
+
+function safeJSON<T = Record<string, unknown>>(s: string): T | null {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
+// Keep list sorted: live first, then by updatedAt desc
+function sortStreams(a: StreamListItem, b: StreamListItem) {
+  if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
+  const au = new Date(a.user.updatedAt).getTime();
+  const bu = new Date(b.user.updatedAt).getTime();
+  return bu - au;
+}
+
+// Merge/update helpers
+function upsertStream(list: StreamListItem[], incoming: StreamListItem) {
+  const idx = list.findIndex((s) => s.id === incoming.id);
+  if (idx === -1) return [incoming, ...list].sort(sortStreams);
+  const updated = [...list];
+  updated[idx] = { ...updated[idx], ...incoming };
+  return updated.sort(sortStreams);
+}
+
+function markStreamEnded(list: StreamListItem[], streamId: string) {
+  return list.map((s) =>
+    s.id === streamId ? { ...s, isLive: false, viewerCount: 0 } : s
+  );
+}
+
+export function useStreamList(options: UseStreamListOptions = {}): UseStreamListReturn {
   const {
     category,
-    initialStreams,
-    autoReconnect = true,
-    reconnectInterval = 5000, // Start with 5 seconds (reduced spam)
-    maxReconnectAttempts = 3,  // Only try 3 times to prevent infinite loops
+    initialStreams = [],
+    autoReconnect: _autoReconnect = true,
+    reconnectInterval = 5000,
+    maxReconnectAttempts = 5,
   } = options;
 
   const [streams, setStreams] = useState<StreamListItem[]>(initialStreams);
   const [isConnected, setIsConnected] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
+
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectAttemptsRef = useRef(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const buildSSEUrl = useCallback(() => {
     const params = new URLSearchParams();
-    
-    if (category) {
-      params.append('category', category);
-    }
-    
-    params.append('type', 'stream-list');
-    
+    params.append("type", "stream-list");
+    if (category) params.append("category", category);
     return `/api/stream-updates?${params.toString()}`;
   }, [category]);
 
-  const handleEvent = useCallback((event: MessageEvent) => {
-    try {
-      const data = JSON.parse(event.data);
-      
-      // Reduced logging for performance - only log errors
-  
-      // Clear existing debounce timeout
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
+  // Debounced apply to avoid flicker on bursts
+  const scheduleApply = useCallback((fn: () => void) => {
+    if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+    debounceTimeoutRef.current = setTimeout(fn, 300); // gentle debounce
+  }, []);
 
-      // Debounce rapid events to prevent flickering
-      debounceTimeoutRef.current = setTimeout(() => {
-        switch (data.type) {
-        case 'stream.started':
-          // Add new stream to the list with sorting
-          setStreams((prev) => {
-            // Check if category matches (if filter is applied)
-            if (category && data.data.category !== category) {
-              return prev;
-            }
-            
-            // Check if stream already exists and update it
-            const existingIndex = prev.findIndex(s => s.id === data.data.id);
-            if (existingIndex !== -1) {
-              // Update existing stream
-              const updated = [...prev];
-              updated[existingIndex] = { ...updated[existingIndex], ...data.data, isLive: true };
-              return updated.sort((a, b) => {
-                if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
-                return new Date(b.user.updatedAt).getTime() - new Date(a.user.updatedAt).getTime();
-              });
-            }
-            
-            // Add new stream and sort by live status first, then by updated date
-            const updated = [data.data, ...prev];
-            return updated.sort((a, b) => {
-              if (a.isLive !== b.isLive) return a.isLive ? -1 : 1;
-              return new Date(b.user.updatedAt).getTime() - new Date(a.user.updatedAt).getTime();
-            });
-          });
-          break;
-  
-        case 'stream.ended':
-          // Update stream to offline instead of removing completely
-          // Reduced logging for performance
-          setStreams((prev) => {
-            const updated = prev.map(s => s.id === data.streamId ? { ...s, isLive: false, viewerCount: 0 } : s);
-            return updated;
-          });
-          break;
-  
-        case 'stream.updated':
-          // Update existing stream data
-          setStreams((prev) => 
-            prev.map(s => s.id === data.data.id ? { ...s, ...data.data } : s)
-          );
-          break;
-  
-        case 'ping':
-          // Heartbeat - do nothing
-          break;
-  
-        default:
-          // Reduced logging for performance
-        }
-      }, 1000); // 1 second debounce
-    } catch (err) {
-      logger.error('[useStreamList] Failed to parse SSE event', err as Error);
-    }
-  }, [category]);
-  
-  const handleOpen = useCallback(() => {
-    // Reduced logging for performance
+  // Event handlers (named SSE events)
+  const onConnectionEstablished = useCallback((e: MessageEvent) => {
+    const payload = safeJSON<SSEPayload>(e.data);
+    if (!payload) return;
+    // Mark as connected, reset error/retries
     setIsConnected(true);
     setError(null);
     reconnectAttemptsRef.current = 0;
   }, []);
-  
+
+  const onConnectionStats = useCallback((e: MessageEvent) => {
+    // Optional: you can surface stats if needed
+    const _payload = safeJSON<SSEPayload>(e.data);
+    // no-op by default
+  }, []);
+
+  const onStreamStarted = useCallback((e: MessageEvent) => {
+    const payload = safeJSON<SSEPayload>(e.data);
+    if (!payload?.data) return;
+
+    // category filtering (server already filters, but double-guard client)
+    if (category && payload.data.category && payload.data.category !== category) return;
+
+    const incoming = payload.data as unknown as StreamListItem;
+    // Normalize dates to strings (avoid Date objects in state)
+    if (incoming?.user) {
+      incoming.user = {
+        ...incoming.user,
+        createdAt: String(incoming.user.createdAt),
+        updatedAt: String(incoming.user.updatedAt),
+      };
+    }
+    scheduleApply(() => {
+      setStreams((prev) => upsertStream(prev, { ...incoming, isLive: true }));
+    });
+  }, [category, scheduleApply]);
+
+  const onStreamEnded = useCallback((e: MessageEvent) => {
+    const payload = safeJSON<SSEPayload>(e.data);
+    if (!payload?.streamId) return;
+    scheduleApply(() => {
+      setStreams((prev) => markStreamEnded(prev, payload.streamId!));
+    });
+  }, [scheduleApply]);
+
+  const onStreamUpdated = useCallback((e: MessageEvent) => {
+    const payload = safeJSON<SSEPayload>(e.data);
+    if (!payload?.data) return;
+    const incoming = payload.data as unknown as StreamListItem;
+    if (incoming?.user) {
+      incoming.user = {
+        ...incoming.user,
+        createdAt: String(incoming.user.createdAt),
+        updatedAt: String(incoming.user.updatedAt),
+      };
+    }
+    scheduleApply(() => {
+      setStreams((prev) => upsertStream(prev, incoming));
+    });
+  }, [scheduleApply]);
+
+  const handleOpen = useCallback(() => {
+    // EventSource fires open on first successful connection
+    setIsConnected(true);
+    setError(null);
+    reconnectAttemptsRef.current = 0;
+  }, []);
+
+  // Reconnect strategy with backoff + jitter
+  const scheduleReconnect = useCallback(() => {
+    if (!_autoReconnect) return;
+    const attempt = reconnectAttemptsRef.current;
+    if (attempt >= maxReconnectAttempts) {
+      const err = new Error("Failed to establish connection after multiple attempts");
+      logger.error("[useStreamList] Max reconnection attempts reached", err);
+      setError(err);
+      return;
+    }
+    const jitter = Math.floor(Math.random() * 500);
+    const delay = reconnectInterval * Math.pow(2, attempt) + jitter;
+    if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current) return;
+      reconnectAttemptsRef.current += 1;
+      // Call connect directly to avoid circular dependency
+      const url = buildSSEUrl();
+      try {
+        const es = new EventSource(url);
+        eventSourceRef.current = es;
+        es.onopen = handleOpen;
+        es.onerror = () => {
+          setIsConnected(false);
+          setError(new Error("SSE connection error"));
+          scheduleReconnect();
+        };
+        es.addEventListener("connection.established", onConnectionEstablished);
+        es.addEventListener("connection.stats", onConnectionStats);
+        es.addEventListener("stream.started", onStreamStarted);
+        es.addEventListener("stream.ended", onStreamEnded);
+        es.addEventListener("stream.updated", onStreamUpdated);
+      } catch (err) {
+        logger.error("[useStreamList] Failed to reconnect", err as Error);
+        setError(new Error("Failed to reconnect"));
+      }
+    }, delay);
+  }, [_autoReconnect, reconnectInterval, maxReconnectAttempts, buildSSEUrl, handleOpen, onConnectionEstablished, onConnectionStats, onStreamStarted, onStreamEnded, onStreamUpdated]);
+
   const handleError = useCallback(() => {
-    logger.error('[useStreamList] SSE connection error', new Error('SSE connection error'));
-    
-    setError(new Error('SSE connection error'));
+    // Any network glitch or server close will trigger this
     setIsConnected(false);
-    
-    // Attempt reconnection
-    if (autoReconnect && reconnectAttemptsRef.current < maxReconnectAttempts) {
-      const delay = reconnectInterval * Math.pow(2, reconnectAttemptsRef.current);
-      // Reduced logging for performance
-      
-      reconnectTimeoutRef.current = setTimeout(() => {
-        if (isMountedRef.current && reconnectAttemptsRef.current < maxReconnectAttempts) {
-          reconnectAttemptsRef.current++;
-          setTimeout(() => connect(), 0);
-        } else if (reconnectAttemptsRef.current >= maxReconnectAttempts) {
-          logger.error('[useStreamList] Max reconnection attempts reached, giving up');
-          setError(new Error('Failed to establish connection after multiple attempts'));
-        }
-      }, delay);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps  
-  }, [autoReconnect, reconnectInterval, maxReconnectAttempts]); 
-  
+    setError(new Error("SSE connection error"));
+    scheduleReconnect();
+  }, [scheduleReconnect]);
+
   const connect = useCallback(() => {
-    if (!isMountedRef.current) return;
-  
-    // Clean up existing connection
+    // Cleanup previous
     if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
-  
-    const url = buildSSEUrl();
-    // Reduced logging for performance
-  
-    try {
-      const eventSource = new EventSource(url);
-      eventSourceRef.current = eventSource;
-  
-      eventSource.onopen = handleOpen;
-      eventSource.onmessage = handleEvent;
-      eventSource.onerror = handleError;
-    } catch (err) {
-      logger.error('[useStreamList] Failed to create EventSource', err as Error);
-      setError(new Error('Failed to create SSE connection'));
-    }
-  }, [buildSSEUrl, handleOpen, handleEvent, handleError]);
-  
-  const disconnect = useCallback(() => {
-    if (eventSourceRef.current) {
-      // Reduced logging for performance
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
-    
+
+    const url = buildSSEUrl();
+    try {
+      const es = new EventSource(url);
+      eventSourceRef.current = es;
+
+      // Core lifecycle
+      es.onopen = handleOpen;
+      es.onerror = handleError;
+
+      // Named events (must match server `event:`)
+      es.addEventListener("connection.established", onConnectionEstablished);
+      es.addEventListener("connection.stats", onConnectionStats);
+      es.addEventListener("stream.started", onStreamStarted);
+      es.addEventListener("stream.ended", onStreamEnded);
+      es.addEventListener("stream.updated", onStreamUpdated);
+
+      // Note: server heartbeats are SSE comments (`: ping ...`), which the browser ignores
+      // so no listener needed for ping.
+
+    } catch (err) {
+      logger.error("[useStreamList] Failed to create EventSource", err as Error);
+      setError(new Error("Failed to create SSE connection"));
+      scheduleReconnect();
+    }
+  }, [
+    buildSSEUrl,
+    handleOpen,
+    handleError,
+    onConnectionEstablished,
+    onConnectionStats,
+    onStreamStarted,
+    onStreamEnded,
+    onStreamUpdated,
+    scheduleReconnect,
+  ]);
+
+
+  const disconnect = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;
     }
-
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
       debounceTimeoutRef.current = null;
     }
-    
     setIsConnected(false);
   }, []);
-  
+
   const refetch = useCallback(() => {
-    // Reduced logging for performance
     disconnect();
-    connect();
+    // Give the server a brief moment to settle before reconnecting
+    setTimeout(connect, 50);
   }, [disconnect, connect]);
 
+  // (Re)connect on mount and when category changes
   useEffect(() => {
     isMountedRef.current = true;
     connect();
-
     return () => {
       isMountedRef.current = false;
       disconnect();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);   
-  
-  return {
-    streams,
-    isConnected,
-    error,
-    refetch,
-  };
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category]);
+
+  return { streams, isConnected, error, refetch };
 }

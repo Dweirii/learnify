@@ -53,7 +53,7 @@ export const streamEnded = inngest.createFunction(
         // First check if stream is already offline to prevent unnecessary updates
         const existingStream = await db.stream.findUnique({
           where: { ingressId },
-          select: { id: true, isLive: true },
+          select: { id: true, isLive: true, updatedAt: true },
         });
 
         if (!existingStream) {
@@ -138,10 +138,12 @@ export const streamEnded = inngest.createFunction(
         logger.error(`[Inngest] Failed to update stream status for ingress ${ingressId}`, error as Error);
         throw error; // Re-throw to trigger retry
       }
-    }, {
-      timeout: 10000, // 10 second timeout for production
-      isolationLevel: 'ReadCommitted', // Prevent dirty reads
     });
+
+    if (!stream) {
+      logger.error(`[Inngest] Stream not found for ingress ${ingressId}`);
+      return { success: false, error: "Stream not found" };
+    }
 
     logger.info(`[Inngest] Stream ${stream.id} ended, viewers reset to 0`);
 

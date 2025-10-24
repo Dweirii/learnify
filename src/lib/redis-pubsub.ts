@@ -3,7 +3,7 @@ import { logger } from './logger';
 
 export interface PubSubEvent {
   type: string;
-  data: any;
+  data: Record<string, unknown>;
   timestamp: number;
   serverId: string;
 }
@@ -62,11 +62,11 @@ export class RedisPubSubManager {
     logger.info(`[RedisPubSub] Initialized with server ID: ${this.serverId}`);
   }
   
-  async publish(channel: string, event: any): Promise<void> {
+  async publish(channel: string, event: Record<string, unknown>): Promise<void> {
     try {
       const pubSubEvent: PubSubEvent = {
-        type: event.type,
-        data: event.data,
+        type: event.type as string,
+        data: event.data as Record<string, unknown>,
         timestamp: Date.now(),
         serverId: this.serverId,
       };

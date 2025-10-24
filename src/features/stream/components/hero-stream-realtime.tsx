@@ -2,7 +2,7 @@
 
 import { Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { useViewerCount } from "@/hooks/use-stream-updates";
+import { useViewerCountFrom, useStreamUpdates } from "@/hooks/use-stream-updates";
 
 interface HeroStreamRealTimeProps {
   streamId: string;
@@ -18,7 +18,8 @@ interface HeroStreamRealTimeProps {
  * - Fallback to initial count if SSE fails
  */
 export function HeroStreamRealTime({ streamId, initialViewerCount }: HeroStreamRealTimeProps) {
-  const realtimeViewerCount = useViewerCount(streamId, initialViewerCount);
+  const { lastEvent } = useStreamUpdates({ streamId });
+  const realtimeViewerCount = useViewerCountFrom(lastEvent, initialViewerCount);
 
   return (
     <Badge

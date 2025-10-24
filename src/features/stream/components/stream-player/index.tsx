@@ -69,9 +69,7 @@ export const StreamPlayer = ({
   return (
     <ErrorBoundary
       resetKeys={[stream.id, user.id]}
-      onError={(error, errorInfo) => {
-        console.error('StreamPlayer error:', error, errorInfo);
-      }}
+
     >
       {collapsed && (
         <div className="hidden lg:block fixed top-[100px] right-2 z-50">

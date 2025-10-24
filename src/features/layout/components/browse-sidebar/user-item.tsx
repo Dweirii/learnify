@@ -9,7 +9,7 @@ import { UserAvatar } from "@/components/shared/user-avatar";
 import { LiveBadge } from "@/components/shared/live-badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useViewerCount } from "@/hooks/use-stream-updates";
+import { useViewerCountFrom, useStreamUpdates } from "@/hooks/use-stream-updates";
 
 interface UserItemProps {
   username: string;
@@ -30,7 +30,8 @@ export const UserItem = ({
   const { collapsed } = useSidebar();
 
   // Use real-time viewer count if streamId is provided and stream is live
-  const realtimeViewerCount = useViewerCount(streamId || "", viewerCount);
+  const { lastEvent } = useStreamUpdates({ streamId: streamId || undefined });
+  const realtimeViewerCount = useViewerCountFrom(lastEvent, viewerCount);
   const displayViewerCount = streamId && isLive ? realtimeViewerCount : viewerCount;
 
   const href = `/${username}`;

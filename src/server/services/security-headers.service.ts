@@ -114,7 +114,7 @@ export class SecurityHeadersService {
   }
 
   // Middleware function for Next.js
-  middleware(request: NextRequest): NextResponse {
+  middleware(_request: NextRequest): NextResponse {
     const response = NextResponse.next();
     return this.applySecurityHeaders(response);
   }
@@ -123,17 +123,17 @@ export class SecurityHeadersService {
   async withSecurityHeaders<T>(
     handler: (req: NextRequest) => Promise<NextResponse<T>>
   ): Promise<(req: NextRequest) => Promise<NextResponse<T>>> {
-    return async (req: NextRequest) => {
+    return async (req: NextRequest): Promise<NextResponse<T>> => {
       try {
         const response = await handler(req);
-        return this.applySecurityHeaders(response);
+        return this.applySecurityHeaders(response) as NextResponse<T>;
       } catch (error) {
         logger.error('[SecurityHeaders] Error in API handler', error as Error);
         const errorResponse = NextResponse.json(
           { success: false, error: 'Internal server error' },
           { status: 500 }
         );
-        return this.applySecurityHeaders(errorResponse);
+        return this.applySecurityHeaders(errorResponse) as NextResponse<T>;
       }
     };
   }

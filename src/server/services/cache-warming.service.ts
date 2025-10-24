@@ -183,7 +183,7 @@ export class CacheWarmingService {
         where: { 
           category: { not: null },
           isLive: true,
-        } as any,
+        } as Record<string, unknown>,
       });
 
       for (const { category } of categories) {
@@ -204,7 +204,7 @@ export class CacheWarmingService {
 
   updateConfig(newConfig: Partial<CacheWarmingConfig>): void {
     this.config = { ...this.config, ...newConfig };
-    logger.info('[CacheWarming] Configuration updated', { config: this.config } as any);
+    logger.info('[CacheWarming] Configuration updated', { config: this.config } as Record<string, unknown>);
   }
 }
 

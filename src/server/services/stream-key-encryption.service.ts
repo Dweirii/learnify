@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scrypt, createHash } from 'crypto';
 import { promisify } from 'util';
 import { logger } from '@/lib/logger';
 
@@ -15,7 +15,7 @@ export interface StreamKeyData {
   userId: string;
   permissions: string[];
   expiresAt: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class StreamKeyEncryptionService {
@@ -223,8 +223,7 @@ export class StreamKeyEncryptionService {
   }
 
   hashKey(key: string): string {
-    const crypto = require('crypto');
-    return crypto.createHash('sha256').update(key).digest('hex');
+    return createHash('sha256').update(key).digest('hex');
   }
 
   // Security audit

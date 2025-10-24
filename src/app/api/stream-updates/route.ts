@@ -1,168 +1,183 @@
+// app/api/stream-updates/route.ts
 import { NextRequest } from "next/server";
-import { sseManager, SSEEventPublisher } from "@/lib/sse";
+import { randomUUID } from "crypto";
+import { sseManager } from "@/lib/sse";
 import { logger } from "@/lib/logger";
 
-/**
- * Server-Sent Events API Route
- * 
- * Provides real-time event streaming for stream updates
- * Clients can subscribe to specific streams or all streams
- * 
- * Usage:
- * GET /api/stream-updates?streamId=abc123 (specific stream)
- * GET /api/stream-updates?type=stream-list (all streams)
- * GET /api/stream-updates?type=stream-list&category=CODING_TECHNOLOGY (category filter)
- */
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const textEncoder = new TextEncoder();
+
+function sseEvent(event: string, payload: unknown) {
+  return `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
+}
 
 export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const streamId = searchParams.get('streamId');
-  const userId = searchParams.get('userId');
-  const type = searchParams.get('type') || 'stream-specific';
-  const category = searchParams.get('category');
+  try {
+    const { searchParams } = new URL(request.url);
+    const streamId = searchParams.get("streamId") ?? null;
+    const userId = searchParams.get("userId") ?? "anonymous";
+    const type = (searchParams.get("type") as "stream-list" | "stream-specific" | null) ?? (streamId ? "stream-specific" : "stream-list");
+    const category = searchParams.get("category") ?? undefined;
 
-  // Generate unique connection ID
-  const connectionId = `conn_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const connectionId = `conn_${randomUUID()}`;
+    const targetStreamId = type === "stream-list" ? "stream-list" : (streamId ?? "all");
 
-  logger.info(`[SSE] New connection ${connectionId}`, { 
-    type, 
-    streamId: streamId || 'all',
-    category 
-  });
+    logger.info(`[SSE] New connection ${connectionId}`, {
+      type,
+      streamId: targetStreamId,
+      category: category ?? "all",
+      userAgent: request.headers.get("user-agent"),
+      origin: request.headers.get("origin"),
+    });
 
-  // Create SSE stream
   const stream = new ReadableStream({
     start(controller) {
-      // Determine connection type
-      let connectionType: 'stream-specific' | 'stream-list' | 'all' = 'stream-specific';
-      let targetStreamId = streamId || 'all';
-
-      if (type === 'stream-list') {
-        connectionType = 'stream-list';
-        targetStreamId = 'stream-list';
-      } else if (!streamId) {
-        connectionType = 'all';
-      }
-
-      // Add connection to manager
+      // Add connection
       sseManager.addConnection(
-        connectionId, 
-        targetStreamId, 
-        controller, 
-        connectionType,
-        category || undefined
+        connectionId,
+        targetStreamId,
+        controller,
+        type === "stream-list" ? "stream-list" : "stream-specific",
+        category
       );
 
-      // Send initial connection confirmation
-      const welcomeMessage = {
-        type: 'connection.established',
-        streamId: targetStreamId,
-        userId: userId || 'anonymous',
-        data: {
-          connectionId,
-          connectionType,
-          category: category || 'all',
-          message: 'Connected to real-time stream updates',
-        },
-        timestamp: new Date().toISOString(),
+      // Initial hints
+      controller.enqueue(textEncoder.encode(`retry: 10000\n`)); // client retry hint
+      controller.enqueue(
+        textEncoder.encode(
+          sseEvent("connection.established", {
+            type: "connection.established",
+            streamId: targetStreamId,
+            userId,
+            data: {
+              connectionId,
+              connectionType: type,
+              category: category ?? "all",
+              message: "Connected to real-time stream updates",
+            },
+            timestamp: new Date().toISOString(),
+          })
+        )
+      );
+
+      controller.enqueue(
+        textEncoder.encode(
+          sseEvent("connection.stats", {
+            type: "connection.stats",
+            streamId: targetStreamId,
+            userId,
+            data: {
+              totalConnections: sseManager.getConnectionCount(),
+              streamConnections: streamId ? sseManager.getStreamConnectionCount(streamId) : 0,
+              streamListConnections: type === "stream-list"
+                ? sseManager.getStreamListConnectionCount(category)
+                : 0,
+            },
+            timestamp: new Date().toISOString(),
+          })
+        )
+      );
+
+      // Abort/cleanup
+      const onAbort = () => {
+        logger.info(`[SSE] Connection ${connectionId} aborted`);
+        sseManager.removeConnection(connectionId);
+        try { controller.close(); } catch {}
       };
-
-      const data = `data: ${JSON.stringify(welcomeMessage)}\n\n`;
-      controller.enqueue(new TextEncoder().encode(data));
-
-      // Send current connection stats
-      const statsMessage = {
-        type: 'connection.stats',
-        streamId: targetStreamId,
-        userId: userId || 'anonymous',
-        data: {
-          totalConnections: sseManager.getConnectionCount(),
-          streamConnections: streamId ? sseManager.getStreamConnectionCount(streamId) : 0,
-          streamListConnections: type === 'stream-list' 
-            ? sseManager.getStreamListConnectionCount(category || undefined)
-            : 0,
-        },
-        timestamp: new Date().toISOString(),
-      };
-
-      const statsData = `data: ${JSON.stringify(statsMessage)}\n\n`;
-      controller.enqueue(new TextEncoder().encode(statsData));
+      if (request.signal.aborted) onAbort();
+      else request.signal.addEventListener("abort", onAbort);
     },
 
     cancel() {
-      // Clean up connection when client disconnects
       logger.info(`[SSE] Connection ${connectionId} cancelled`);
       sseManager.removeConnection(connectionId);
     },
   });
 
-  // Return SSE response
-  return new Response(stream, {
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        "Connection": "keep-alive",
+        "Access-Control-Allow-Origin": "*",
+        "X-Accel-Buffering": "no",
+      },
+    });
+  } catch (error) {
+    logger.error("[SSE] Error creating SSE connection", error as Error);
+    return new Response(
+      JSON.stringify({ 
+        error: "Failed to create SSE connection", 
+        details: error instanceof Error ? error.message : "Unknown error" 
+      }),
+      { 
+        status: 500, 
+        headers: { "Content-Type": "application/json" } 
+      }
+    );
+  }
+}
+
+// Optional: handy test publisher (CORS-friendly)
+export async function OPTIONS() {
+  return new Response(null, {
     headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control',
-      'X-Accel-Buffering': 'no', // Disable nginx buffering
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type",
     },
   });
 }
 
-/**
- * Manual event publishing endpoint (for testing/debugging)
- */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, streamId, userId, data } = body;
+    const { type, streamId, userId, data } = body || {};
 
-    // Validate required fields
     if (!type || !streamId || !userId) {
-      return new Response(
-        JSON.stringify({ error: 'Missing required fields: type, streamId, userId' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ error: "Missing required fields: type, streamId, userId" }), {
+        status: 400, headers: { "Content-Type": "application/json" },
+      });
     }
 
-    // Publish event based on type
-    switch (type) {
-      case 'stream.started':
-        SSEEventPublisher.publishStreamStarted(streamId, userId, data);
+    const { SSEEventPublisher } = await import("@/lib/sse");
+
+    switch (type as "stream.started" | "stream.ended" | "viewer.joined" | "viewer.left" | "viewer.count.updated") {
+      case "stream.started":
+        await SSEEventPublisher.publishStreamStarted(streamId, userId, data);
         break;
-      case 'stream.ended':
-        SSEEventPublisher.publishStreamEnded(streamId, userId, data);
+      case "stream.ended":
+        await SSEEventPublisher.publishStreamEnded(streamId, userId, data);
         break;
-      case 'viewer.joined':
-        SSEEventPublisher.publishViewerJoined(streamId, userId, data.viewerCount);
+      case "viewer.joined":
+        SSEEventPublisher.publishViewerJoined(streamId, userId, data?.viewerCount);
         break;
-      case 'viewer.left':
-        SSEEventPublisher.publishViewerLeft(streamId, userId, data.viewerCount);
+      case "viewer.left":
+        SSEEventPublisher.publishViewerLeft(streamId, userId, data?.viewerCount);
         break;
-      case 'viewer.count.updated':
-        SSEEventPublisher.publishViewerCountUpdate(streamId, userId, data.viewerCount);
+      case "viewer.count.updated":
+        SSEEventPublisher.publishViewerCountUpdate(streamId, userId, data?.viewerCount);
         break;
       default:
-        return new Response(
-          JSON.stringify({ error: `Unknown event type: ${type}` }),
-          { status: 400, headers: { 'Content-Type': 'application/json' } }
-        );
+        return new Response(JSON.stringify({ error: `Unknown event type: ${type}` }), {
+          status: 400, headers: { "Content-Type": "application/json" },
+        });
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Event ${type} published successfully`,
+      JSON.stringify({
+        success: true,
+        message: `Event ${type} published`,
         connections: sseManager.getConnectionCount(),
       }),
-      { headers: { 'Content-Type': 'application/json' } }
+      { headers: { "Content-Type": "application/json" } }
     );
-
   } catch (error) {
-    logger.error('[SSE] Error publishing event', error as Error);
-    return new Response(
-      JSON.stringify({ error: 'Failed to publish event' }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    );
+    logger.error("[SSE] Error publishing event", error as Error);
+    return new Response(JSON.stringify({ error: "Failed to publish event" }), {
+      status: 500, headers: { "Content-Type": "application/json" },
+    });
   }
 }

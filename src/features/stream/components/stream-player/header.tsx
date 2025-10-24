@@ -8,7 +8,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { VerifiedMark } from "@/components/shared/verified-mark";
 import { UserAvatar, UserAvatarSkeleton } from "@/components/shared/user-avatar";
-import { useViewerCount, useStreamLiveStatus } from "@/hooks/use-stream-updates";
+import { useViewerCountFrom, useStreamLiveStatusFrom, useStreamUpdates } from "@/hooks/use-stream-updates";
 import { ConnectionDot } from "@/components/shared/connection-indicator";
 
 import { Actions, ActionsSkeleton } from "./actions";
@@ -39,11 +39,12 @@ export const Header = ({
   const isLive = !!participant;
   
   // Use real-time viewer count from database with correct initial value
-  const realtimeViewerCount = useViewerCount(streamId || "", initialViewerCount);
+  const { lastEvent } = useStreamUpdates({ streamId: streamId || undefined });
+  const realtimeViewerCount = useViewerCountFrom(lastEvent, initialViewerCount);
   const displayViewerCount = realtimeViewerCount;
   
   // Get connection state for reconnecting indicator - always call hook
-  const liveStatus = useStreamLiveStatus(streamId || "", isLive);
+  const liveStatus = useStreamLiveStatusFrom(lastEvent, isLive);
 
   const hostAsViewer = `host-${hostIdentity}`;
   const isHost = viewerIdentity === hostAsViewer;

@@ -1,47 +1,27 @@
+// lib/sse.ts
 import { EventEmitter } from "events";
-import { logger } from './logger';
-import { redisPubSub, RedisPubSubManager, PubSubEvent } from './redis-pubsub';
+import { randomUUID } from "crypto";
+import { logger } from "./logger";
+import { redisPubSub, RedisPubSubManager, PubSubEvent } from "./redis-pubsub";
 
-/**
- * Server-Sent Events Manager
- * 
- * Handles real-time event streaming to connected clients
- * Uses EventEmitter for in-memory event distribution
- */
+// ---------- Types ----------
+export type StreamEventType =
+  | "stream.started"
+  | "stream.ended"
+  | "viewer.joined"
+  | "viewer.left"
+  | "viewer.count.updated";
 
-class SSEEventEmitter extends EventEmitter {
-  private static instance: SSEEventEmitter;
-  
-  static getInstance(): SSEEventEmitter {
-    if (!SSEEventEmitter.instance) {
-      SSEEventEmitter.instance = new SSEEventEmitter();
-    }
-    return SSEEventEmitter.instance;
-  }
-  
-  constructor() {
-    super();
-    this.setMaxListeners(1000); // Allow many concurrent connections
-  }
-}
-
-export const sseEmitter = SSEEventEmitter.getInstance();
-
-/**
- * Stream Event Types
- */
 export interface StreamEvent {
-  type: 'stream.started' | 'stream.ended' | 'viewer.joined' | 'viewer.left' | 'viewer.count.updated';
+  type: StreamEventType;
   streamId: string;
   userId: string;
   data: unknown;
   timestamp: string;
+  __origin?: string; // internal-only, stripped before sending to clients
 }
 
-/**
- * Connection Types
- */
-type ConnectionType = 'stream-specific' | 'stream-list' | 'all';
+type ConnectionType = "stream-specific" | "stream-list";
 
 interface ConnectionInfo {
   streamId: string;
@@ -49,375 +29,388 @@ interface ConnectionInfo {
   category?: string;
   response: ReadableStreamDefaultController;
   lastPing: number;
+  createdAt: number;
+  timeoutId?: NodeJS.Timeout;
 }
 
-/**
- * SSE Connection Manager
- */
+// ---------- Globals ----------
+const textEncoder = new TextEncoder();
+const ORIGIN_ID = process.env.INSTANCE_ID || randomUUID();
+
+const CONNECTION_TIMEOUT_MS = 30 * 60 * 1000; // 30m
+const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;    // 5m
+const HEARTBEAT_MS = Number(process.env.SSE_HEARTBEAT_MS || 25000); // 25s default
+
+// ---------- Helpers ----------
+function sanitizeForClient(evt: StreamEvent) {
+  const { __origin: _origin, ...rest } = evt;
+  return rest;
+}
+function formatSSE(evt: StreamEvent): string {
+  const clientEvt = sanitizeForClient(evt);
+  return `event: ${clientEvt.type}\ndata: ${JSON.stringify(clientEvt)}\n\n`;
+}
+function sseCommentPing(ts: string) {
+  return `: ping ${ts}\n\n`;
+}
+function safeEnqueue(ctrl: ReadableStreamDefaultController, chunk: Uint8Array) {
+  const ds = (ctrl as ReadableStreamDefaultController & { desiredSize?: number | null }).desiredSize as number | null | undefined;
+  if (typeof ds === "number" && ds < -1024) return false; // drop if extremely backed up
+  ctrl.enqueue(chunk);
+  return true;
+}
+
+// ---------- Emitter (optional in-memory hooks) ----------
+class SSEEventEmitter extends EventEmitter {
+  private static instance: SSEEventEmitter;
+  static getInstance(): SSEEventEmitter {
+    if (!SSEEventEmitter.instance) SSEEventEmitter.instance = new SSEEventEmitter();
+    return SSEEventEmitter.instance;
+  }
+  constructor() {
+    super();
+    this.setMaxListeners(100);
+  }
+  cleanup() {
+    this.removeAllListeners();
+    logger.info("[SSE] EventEmitter cleaned up");
+  }
+}
+export const sseEmitter = SSEEventEmitter.getInstance();
+
+// ---------- Connection Manager ----------
 class SSEConnectionManager {
   private connections = new Map<string, ConnectionInfo>();
   private redisInitialized = false;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.initializeRedisSubscriptions();
+    this.startCleanupTimer();
+    this.setupGracefulShutdown();
+    this.setupProcessWarnings();
   }
 
   private async initializeRedisSubscriptions() {
     if (this.redisInitialized) return;
-    
     try {
-      // Subscribe to global streams channel for cross-server events
       await redisPubSub.subscribe(
-        RedisPubSubManager.getChannelName('streams'),
-        (event: PubSubEvent) => {
-          this.handleRedisEvent(event);
-        }
+        RedisPubSubManager.getChannelName("streams"),
+        (event: PubSubEvent) => this.handleRedisEvent(event)
       );
-      
       this.redisInitialized = true;
-      logger.info('[SSE] Redis Pub/Sub subscriptions initialized');
+      logger.info("[SSE] Redis Pub/Sub subscriptions initialized");
     } catch (error) {
-      logger.error('[SSE] Failed to initialize Redis subscriptions:', error as Error);
+      logger.error("[SSE] Failed to initialize Redis subscriptions:", error as Error);
     }
   }
 
   private handleRedisEvent(event: PubSubEvent) {
     try {
-      // Convert Redis event to SSE event
+      // Ignore events from our own origin to prevent self-echo
+      const origin = (event as PubSubEvent & { __origin?: string; serverId?: string }).__origin || (event as PubSubEvent & { __origin?: string; serverId?: string }).serverId || event.data?.__origin;
+      if (origin === ORIGIN_ID) return;
+
       const sseEvent: StreamEvent = {
-        type: event.type as any,
-        streamId: event.data.streamId || event.data.id,
-        userId: event.data.userId,
-        data: event.data,
-        timestamp: new Date(event.timestamp).toISOString(),
+        type: event.type as StreamEventType,
+        streamId: typeof event.data?.streamId === "string"
+          ? event.data.streamId
+          : typeof event.data?.id === "string"
+            ? event.data.id
+            : "unknown",
+        userId: typeof event.data?.userId === "string"
+          ? event.data.userId
+          : "unknown",
+        data: event.data && typeof event.data === "object" ? event.data : {},
+        timestamp: new Date(event.timestamp ?? Date.now()).toISOString(),
       };
 
-      // Reduced logging for performance - only log errors
-
-      // Forward to appropriate SSE connections
-      switch (event.type) {
-        case 'stream.started':
-        case 'stream.ended':
-          // Send to stream-list subscribers
-          this.sendToStreamList(sseEvent, event.data.category);
+      switch (sseEvent.type) {
+        case "stream.started":
+        case "stream.ended": {
+          const category =
+            typeof event.data?.category === "string"
+              ? event.data.category
+              : undefined;
+          this.sendToStreamList(sseEvent, category);
           break;
-        case 'viewer.joined':
-        case 'viewer.left':
-        case 'viewer.count.updated':
-          // Send to specific stream viewers
+        }
+        case "viewer.joined":
+        case "viewer.left":
+        case "viewer.count.updated":
           this.sendToStream(sseEvent.streamId, sseEvent);
           break;
         default:
-          // Reduced logging for performance
+          logger.debug(`[SSE] Unhandled Redis event type: ${sseEvent.type}`);
       }
     } catch (error) {
-      logger.error('[SSE] Failed to handle Redis event:', error as Error);
+      logger.error("[SSE] Failed to handle Redis event:", error as Error);
     }
+  }
+
+  private startCleanupTimer() {
+    this.cleanupInterval = setInterval(() => this.cleanupStaleConnections(), CLEANUP_INTERVAL_MS);
+    logger.info("[SSE] Cleanup timer started");
+  }
+
+  private cleanupStaleConnections() {
+    const now = Date.now();
+    const stale: string[] = [];
+    for (const [id, c] of this.connections) {
+      const sincePing = now - c.lastPing;
+      const sinceCreated = now - c.createdAt;
+      if (sincePing > CONNECTION_TIMEOUT_MS || sinceCreated > 2 * 60 * 60 * 1000) stale.push(id);
+    }
+    for (const id of stale) this.removeConnection(id);
+    if (stale.length) logger.info(`[SSE] Cleaned up ${stale.length} stale connections`);
+  }
+
+  private setupGracefulShutdown() {
+    const shutdown = async () => {
+      logger.info("[SSE] Graceful shutdown initiated");
+      if (this.cleanupInterval) clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+
+      for (const [id, c] of this.connections) {
+        try {
+          if (c.timeoutId) clearTimeout(c.timeoutId);
+          c.response.close();
+        } catch (e) {
+          logger.error(`[SSE] Error closing connection ${id}:`, e as Error);
+        }
+      }
+      this.connections.clear();
+
+      try {
+        await redisPubSub.disconnect();
+        logger.info("[SSE] Redis Pub/Sub disconnected");
+      } catch (e) {
+        logger.error("[SSE] Error disconnecting from Redis:", e as Error);
+      }
+      sseEmitter.cleanup();
+      logger.info("[SSE] Graceful shutdown completed");
+    };
+    process.on("SIGINT", shutdown);
+    process.on("SIGTERM", shutdown);
+    process.on("SIGUSR2", shutdown);
+  }
+
+  private setupProcessWarnings() {
+    process.on("warning", (w) => {
+      logger.warn("[SSE] Process warning:", { warning: w.message });
+    });
   }
 
   addConnection(
     connectionId: string,
     streamId: string,
     controller: ReadableStreamDefaultController,
-    type: ConnectionType = 'stream-specific',
+    type: ConnectionType,
     category?: string
   ) {
+    const now = Date.now();
+    const timeoutId = setTimeout(() => {
+      logger.warn(`[SSE] Connection ${connectionId} timed out, removing`);
+      this.removeConnection(connectionId);
+    }, CONNECTION_TIMEOUT_MS);
+
     this.connections.set(connectionId, {
       streamId,
       type,
       category,
       response: controller,
-      lastPing: Date.now(),
+      lastPing: now,
+      createdAt: now,
+      timeoutId,
     });
-    
-    logger.info(`[SSE] Connection ${connectionId} added`, { 
-      type, 
-      streamId, 
+
+    logger.info(`[SSE] Connection ${connectionId} added`, {
+      type,
+      streamId,
       category,
-      totalConnections: this.connections.size 
+      totalConnections: this.connections.size,
     });
   }
 
   removeConnection(connectionId: string) {
-    const connection = this.connections.get(connectionId);
-    if (connection) {
-      this.connections.delete(connectionId);
-      logger.info(`[SSE] Connection ${connectionId} removed`, {
-        totalConnections: this.connections.size
-      });
+    const c = this.connections.get(connectionId);
+    if (!c) return;
+    if (c.timeoutId) clearTimeout(c.timeoutId);
+    try {
+      c.response.close();
+    } catch (e) {
+      logger.debug(`[SSE] Error closing controller for ${connectionId}:`, { error: e as Error });
     }
+    this.connections.delete(connectionId);
+    logger.info(`[SSE] Connection ${connectionId} removed`, { totalConnections: this.connections.size });
+  }
+
+  forEachConnection(fn: (id: string, c: ConnectionInfo) => void) {
+    for (const [id, c] of this.connections) fn(id, c);
   }
 
   sendToStream(streamId: string, event: StreamEvent) {
-    let sentCount = 0;
-    
-    for (const [connectionId, connection] of this.connections) {
-      if (connection.streamId === streamId) {
-        try {
-          const data = `data: ${JSON.stringify(event)}\n\n`;
-          connection.response.enqueue(new TextEncoder().encode(data));
-          sentCount++;
-        } catch (error) {
-          logger.error(`[SSE] Failed to send to connection ${connectionId}`, error as Error);
-          this.removeConnection(connectionId);
-        }
-      }
-    }
-    
-    logger.info(`[SSE] Event sent to ${sentCount} connections for stream ${streamId}`);
-  }
-
-  async sendToAll(event: StreamEvent) {
-    let sentCount = 0;
-    
-    // Send to local SSE connections
-    for (const [connectionId, connection] of this.connections) {
+    let sent = 0;
+    const chunk = textEncoder.encode(formatSSE(event));
+    this.forEachConnection((id, c) => {
+      if (c.streamId !== streamId) return;
       try {
-        const data = `data: ${JSON.stringify(event)}\n\n`;
-        connection.response.enqueue(new TextEncoder().encode(data));
-        sentCount++;
-      } catch (error) {
-        logger.error(`[SSE] Failed to send to connection ${connectionId}`, error as Error);
-        this.removeConnection(connectionId);
+        const ok = safeEnqueue(c.response, chunk);
+        if (!ok) return;
+        sent++;
+      } catch (e) {
+        logger.error(`[SSE] Failed to send to connection ${id}`, e as Error);
+        this.removeConnection(id);
       }
-    }
-    
-            // 🚀 NEW: Publish to Redis for other servers
-            try {
-              await redisPubSub.publish(
-                RedisPubSubManager.getChannelName('streams'),
-                event
-              );
-              // Reduced logging for performance
-            } catch (error) {
-              logger.error(`[SSE] Failed to publish to Redis:`, error as Error);
-            }
-    
-    // Reduced logging for performance - only log if no connections
-    if (sentCount === 0) {
-      logger.debug(`[SSE] Event sent to ${sentCount} local connections and published to Redis`);
-    }
+    });
+    logger.debug(`[SSE] Event sent to ${sent} connections for stream ${streamId}`);
   }
 
-  /**
-   * 🚀 NEW: Send to stream-list subscribers
-   */
-  async sendToStreamList(event: StreamEvent, category?: string) {
-    let sentCount = 0;
-    
-    // Send to local stream-list connections
-    for (const [connectionId, connection] of this.connections) {
-      // Only send to stream-list type connections
-      if (connection.type === 'stream-list') {
-        // If category filter is specified, check it matches
-        if (category && connection.category && connection.category !== category) {
-          continue;
-        }
-        
-        try {
-          const data = `data: ${JSON.stringify(event)}\n\n`;
-          connection.response.enqueue(new TextEncoder().encode(data));
-          sentCount++;
-        } catch (error) {
-          logger.error(`[SSE] Failed to send to connection ${connectionId}`, error as Error);
-          this.removeConnection(connectionId);
-        }
+  sendToStreamList(event: StreamEvent, category?: string) {
+    let sent = 0;
+    const chunk = textEncoder.encode(formatSSE(event));
+    this.forEachConnection((id, c) => {
+      if (c.type !== "stream-list") return;
+      if (category && c.category && c.category !== category) return;
+      try {
+        const ok = safeEnqueue(c.response, chunk);
+        if (!ok) return;
+        sent++;
+      } catch (e) {
+        logger.error(`[SSE] Failed to send to connection ${id}`, e as Error);
+        this.removeConnection(id);
       }
-    }
-    
-            // 🚀 NEW: Publish to Redis for other servers (only for stream events)
-            if (event.type === 'stream.started' || event.type === 'stream.ended') {
-              try {
-                await redisPubSub.publish(
-                  RedisPubSubManager.getChannelName('streams'),
-                  event
-                );
-                // Reduced logging for performance
-              } catch (error) {
-                logger.error(`[SSE] Failed to publish stream list event to Redis:`, error as Error);
-              }
-            }
-    
-    // Reduced logging for performance - only log if no connections
-    if (sentCount === 0) {
-      logger.debug(`[SSE] Stream list event sent to ${sentCount} local connections and published to Redis`, { category });
-    }
+    });
+    logger.debug(`[SSE] Stream list event sent to ${sent} local connections`, { category });
   }
 
-  getConnectionCount(): number {
-    return this.connections.size;
+  // Stats
+  getConnectionCount() { return this.connections.size; }
+  getStreamConnectionCount(streamId: string) {
+    let n = 0; this.forEachConnection((_id, c) => { if (c.streamId === streamId) n++; }); return n;
   }
-
-  getStreamConnectionCount(streamId: string): number {
-    let count = 0;
-    for (const connection of this.connections.values()) {
-      if (connection.streamId === streamId) {
-        count++;
-      }
-    }
-    return count;
-  }
-
-  /**
-   * 🚀 NEW: Get stream-list connection count
-   */
-  getStreamListConnectionCount(category?: string): number {
-    let count = 0;
-    for (const connection of this.connections.values()) {
-      if (connection.type === 'stream-list') {
-        if (!category || connection.category === category) {
-          count++;
-        }
-      }
-    }
-    return count;
+  getStreamListConnectionCount(category?: string) {
+    let n = 0; this.forEachConnection((_id, c) => {
+      if (c.type !== "stream-list") return;
+      if (!category || c.category === category) n++;
+    }); return n;
   }
 }
 
 export const sseManager = new SSEConnectionManager();
 
-/**
- * SSE Event Publisher
- * 
- * Publishes events to SSE clients
- */
-export class SSEEventPublisher {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async publishStreamStarted(streamId: string, userId: string, data: any) {
-    const event: StreamEvent = {
-      type: 'stream.started',
-      streamId,
-      userId,
-      data,
-      timestamp: new Date().toISOString(),
-    };
+// ---------- Publisher (centralizes Redis publish) ----------
+const viewerCountBuffer = new Map<string, { count: number; t?: NodeJS.Timeout }>();
 
-    logger.info(`[SSE] Publishing stream.started event for stream ${streamId}`);
-    
-    // Send to specific stream viewers
+export class SSEEventPublisher {
+  static async publishStreamStarted(streamId: string, userId: string, data: Record<string, unknown>) {
+    const event: StreamEvent = {
+      type: "stream.started",
+      streamId, userId, data,
+      timestamp: new Date().toISOString(),
+      __origin: ORIGIN_ID,
+    };
     sseManager.sendToStream(streamId, event);
-    
-    // NEW: Send to stream-list subscribers (now async)
-    await sseManager.sendToStreamList(event, data.category);
-    
-    // Emit to event emitter
-    sseEmitter.emit('stream.started', event);
+    sseManager.sendToStreamList(event, data?.category as string | undefined);
+    await publishToRedis(event);
+    sseEmitter.emit("stream.started", event);
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  static async publishStreamEnded(streamId: string, userId: string, data: any) {
+  static async publishStreamEnded(streamId: string, userId: string, data: Record<string, unknown>) {
     const event: StreamEvent = {
-      type: 'stream.ended',
-      streamId,
-      userId,
-      data,
+      type: "stream.ended",
+      streamId, userId, data,
       timestamp: new Date().toISOString(),
+      __origin: ORIGIN_ID,
     };
-
-    logger.info(`[SSE] Publishing stream.ended event for stream ${streamId}`, { 
-      streamId, 
-      userId, 
-      data,
-      eventType: event.type 
-    });
-    
-    // Send to specific stream viewers
     sseManager.sendToStream(streamId, event);
-    
-    // 🚀 NEW: Send to stream-list subscribers (now async)
-    await sseManager.sendToStreamList(event, data.category);
-    
-    // Emit to event emitter
-    sseEmitter.emit('stream.ended', event);
+    sseManager.sendToStreamList(event, data?.category as string | undefined);
+    await publishToRedis(event);
+    sseEmitter.emit("stream.ended", event);
   }
 
   static publishViewerJoined(streamId: string, userId: string, viewerCount: number) {
     const event: StreamEvent = {
-      type: 'viewer.joined',
-      streamId,
-      userId,
-      data: { viewerCount },
+      type: "viewer.joined",
+      streamId, userId, data: { viewerCount },
       timestamp: new Date().toISOString(),
+      __origin: ORIGIN_ID,
     };
-
-    logger.info(`[SSE] Publishing viewer.joined event for stream ${streamId} (count: ${viewerCount})`);
     sseManager.sendToStream(streamId, event);
-    sseEmitter.emit('viewer.joined', event);
+    sseEmitter.emit("viewer.joined", event);
   }
 
   static publishViewerLeft(streamId: string, userId: string, viewerCount: number) {
     const event: StreamEvent = {
-      type: 'viewer.left',
-      streamId,
-      userId,
-      data: { viewerCount },
+      type: "viewer.left",
+      streamId, userId, data: { viewerCount },
       timestamp: new Date().toISOString(),
+      __origin: ORIGIN_ID,
     };
-
-    logger.info(`[SSE] Publishing viewer.left event for stream ${streamId} (count: ${viewerCount})`);
     sseManager.sendToStream(streamId, event);
-    sseEmitter.emit('viewer.left', event);
+    sseEmitter.emit("viewer.left", event);
   }
 
+  // Debounced to prevent floods during bursts
   static publishViewerCountUpdate(streamId: string, userId: string, viewerCount: number) {
-    const event: StreamEvent = {
-      type: 'viewer.count.updated',
-      streamId,
-      userId,
-      data: { viewerCount },
-      timestamp: new Date().toISOString(),
-    };
-
-    logger.info(`[SSE] Publishing viewer.count.updated event for stream ${streamId} (count: ${viewerCount})`);
-    sseManager.sendToStream(streamId, event);
-    sseEmitter.emit('viewer.count.updated', event);
+    const key = streamId;
+    const curr = viewerCountBuffer.get(key) ?? { count: viewerCount };
+    curr.count = viewerCount;
+    if (curr.t) clearTimeout(curr.t);
+    curr.t = setTimeout(() => {
+      const ev: StreamEvent = {
+        type: "viewer.count.updated",
+        streamId, userId,
+        data: { viewerCount: curr.count },
+        timestamp: new Date().toISOString(),
+        __origin: ORIGIN_ID,
+      };
+      sseManager.sendToStream(streamId, ev);
+      sseEmitter.emit("viewer.count.updated", ev);
+      viewerCountBuffer.delete(key);
+    }, 250);
+    viewerCountBuffer.set(key, curr);
   }
 }
 
-/**
- * Heartbeat Manager
- * 
- * Sends periodic ping messages to keep connections alive
- */
+async function publishToRedis(event: StreamEvent) {
+  try {
+    await redisPubSub.publish(
+      RedisPubSubManager.getChannelName("streams"),
+      { ...event, serverId: ORIGIN_ID, __origin: ORIGIN_ID }
+    );
+    logger.debug("[SSE] Event published to Redis for cross-server distribution");
+  } catch (e) {
+    logger.error("[SSE] Failed to publish to Redis:", e as Error);
+  }
+}
+
+// ---------- Heartbeat ----------
 class HeartbeatManager {
   private interval: NodeJS.Timeout | null = null;
-  private isRunning = false;
-
   start() {
-    if (this.isRunning) return;
-    
-    this.isRunning = true;
+    if (this.interval) return;
     this.interval = setInterval(() => {
-      this.sendHeartbeat();
-    }, 120000); // Send heartbeat every 2 minutes (reduced to prevent rate limiting)
-    
-    logger.info("[SSE] Heartbeat manager started");
+      const ping = textEncoder.encode(sseCommentPing(new Date().toISOString()));
+      sseManager.forEachConnection((id, c) => {
+        try {
+          const ok = safeEnqueue(c.response, ping);
+          if (!ok) return;
+          c.lastPing = Date.now();
+        } catch (e) {
+          logger.error(`[SSE] Failed to send heartbeat to ${id}`, e as Error);
+          sseManager.removeConnection(id);
+        }
+      });
+    }, HEARTBEAT_MS);
+    logger.info(`[SSE] Heartbeat manager started (${HEARTBEAT_MS} ms)`);
   }
-
   stop() {
-    if (this.interval) {
-      clearInterval(this.interval);
-      this.interval = null;
-    }
-    this.isRunning = false;
+    if (!this.interval) return;
+    clearInterval(this.interval);
+    this.interval = null;
     logger.info("[SSE] Heartbeat manager stopped");
   }
-
-  private sendHeartbeat() {
-    const heartbeatData = `data: ${JSON.stringify({ type: 'ping', timestamp: new Date().toISOString() })}\n\n`;
-    
-    for (const [connectionId, connection] of sseManager['connections']) {
-      try {
-        connection.response.enqueue(new TextEncoder().encode(heartbeatData));
-      } catch (error) {
-        logger.error(`[SSE] Failed to send heartbeat to connection ${connectionId}`, error as Error);
-        sseManager.removeConnection(connectionId);
-      }
-    }
-  }
 }
-
 export const heartbeatManager = new HeartbeatManager();
-
-// Start heartbeat manager
 heartbeatManager.start();

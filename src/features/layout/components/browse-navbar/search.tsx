@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { SearchIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import qs from "query-string";
-import React, { useState } from "react";
+import { useState, FormEvent } from "react";
 
 export const SearchBar = () => {
     const router = useRouter();
     const [value, setValue] = useState("");
 
-    const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         if (!value) return;

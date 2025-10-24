@@ -105,7 +105,7 @@ export const cacheActionSchema = z.object({
     'update-ttl-config',
     'clear-cache'
   ]),
-  data: z.record(z.any()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -143,7 +143,7 @@ export const errorResponseSchema = z.object({
   success: z.literal(false),
   error: z.string(),
   code: z.string().optional(),
-  details: z.record(z.any()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -151,7 +151,7 @@ export const errorResponseSchema = z.object({
  */
 export const successResponseSchema = z.object({
   success: z.literal(true),
-  data: z.any(),
+  data: z.unknown(),
   message: z.string().optional(),
 });
 
@@ -171,7 +171,7 @@ export function validateInput<T>(schema: z.ZodSchema<T>, data: unknown): T {
     return schema.parse(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new Error(`Validation error: ${error.errors.map(e => e.message).join(', ')}`);
+      throw new Error(`Validation error: ${(error as z.ZodError).issues.map((e: z.ZodIssue) => e.message).join(', ')}`);
     }
     throw error;
   }
@@ -179,7 +179,7 @@ export function validateInput<T>(schema: z.ZodSchema<T>, data: unknown): T {
 
 export function validateQuery<T>(schema: z.ZodSchema<T>, query: Record<string, string | string[] | undefined>): T {
   // Convert query parameters to proper types
-  const processedQuery: Record<string, any> = {};
+  const processedQuery: Record<string, unknown> = {};
   
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined) continue;

@@ -13,7 +13,7 @@ import SidebarItems from "./sidebar-items";
 
 export const Sidebar = async () => {
   const recommended = await getRecommended() as SerializedUserWithStream[];
-  const following = await getFollowedUsers() as SerializedFollow[];
+  const following = await getFollowedUsers() as unknown as SerializedFollow[];
 
   return (
     <Wrapper>

@@ -136,13 +136,17 @@ export async function POST(request: NextRequest) {
         });
         break;
 
-      case 'clear-cache':
-        const pattern = (validatedBody.data as any)?.pattern || '*';
+      case 'clear-cache': {
+        const pattern = typeof validatedBody.data?.pattern === 'string'
+          ? validatedBody.data.pattern
+          : '*';
         await CacheService.clearPattern(pattern);
         response = NextResponse.json({
           success: true,
           message: `Cache cleared for pattern: ${pattern}`,
         });
+        break;
+      }
         break;
 
       default:

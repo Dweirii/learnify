@@ -511,7 +511,7 @@ export class CacheService {
   /**
    * 🚀 NEW: Set stream with TTL
    */
-  static async setStream(stream: any): Promise<void> {
+  static async setStream(stream: Record<string, unknown>): Promise<void> {
     const operation: CacheOperation = {
       operation: 'set',
       key: `stream:${stream.id}`,
@@ -527,7 +527,7 @@ export class CacheService {
       operation.success = true;
       cacheMetrics.recordOperation(operation);
       
-      logger.debug(`[Cache] Stream cached with TTL: ${ttl}s`, { streamId: stream.id });
+      logger.debug(`[Cache] Stream cached with TTL: ${ttl}s`, { streamId: (stream as Record<string, unknown>).id as string });
     } catch (error) {
       operation.endTime = Date.now();
       operation.success = false;
@@ -541,7 +541,7 @@ export class CacheService {
   /**
    * 🚀 NEW: Set user with TTL
    */
-  static async setUser(user: any): Promise<void> {
+  static async setUser(user: Record<string, unknown>): Promise<void> {
     const operation: CacheOperation = {
       operation: 'set',
       key: `user:${user.id}`,
@@ -557,7 +557,7 @@ export class CacheService {
       operation.success = true;
       cacheMetrics.recordOperation(operation);
       
-      logger.debug(`[Cache] User cached with TTL: ${ttl}s`, { userId: user.id });
+      logger.debug(`[Cache] User cached with TTL: ${ttl}s`, { userId: (user as Record<string, unknown>).id as string });
     } catch (error) {
       operation.endTime = Date.now();
       operation.success = false;
@@ -571,7 +571,7 @@ export class CacheService {
   /**
    * 🚀 NEW: Set category streams with TTL
    */
-  static async setCategoryStreams(category: string, streams: any[]): Promise<void> {
+  static async setCategoryStreams(category: string, streams: Record<string, unknown>[]): Promise<void> {
     const operation: CacheOperation = {
       operation: 'set',
       key: `category:${category}:streams`,
@@ -610,9 +610,10 @@ export class CacheService {
     };
 
     try {
-      // This would need to be implemented in your Redis helpers
-      // For now, we'll log the operation
       logger.info(`[Cache] Clearing cache pattern: ${pattern}`);
+      
+      // Use the Redis helper to actually clear the pattern
+      await cacheHelpers.delPattern(pattern);
       
       operation.endTime = Date.now();
       operation.success = true;
