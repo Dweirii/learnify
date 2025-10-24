@@ -4,7 +4,7 @@ import { Toggle } from "./toggle";
 
 export const Logo = () => {
   return (
-    <div className="flex items-center gap-x-4">
+    <div className="lg:flex items-center gap-x-4">
       <Toggle />
       <Link href="/" className="flex items-center">
         <Image

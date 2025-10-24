@@ -25,7 +25,7 @@ export const Toggle = () => {
         }}
         variant="ghost"
         size="icon"
-        className="h-8 w-8 hover:bg-accent/50 transition-all duration-200 flex"
+        className="h-8 w-8 hover:bg-accent/50 transition-all duration-200 hidden lg:flex"
       >
         {collapsed ? (
           <PanelLeftOpen className="h-4 w-4" />

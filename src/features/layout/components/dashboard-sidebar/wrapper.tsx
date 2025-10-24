@@ -15,13 +15,11 @@ export const Wrapper = ({
   return (
     <aside
       className={cn(
-        "fixed left-0 w-60 h-full z-40 bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)] p-4 transition-all duration-300 ease-in-out",
-        collapsed && "w-[70px] px-2"
+        "fixed left-0 w-60 h-full z-40 bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)] p-4 transition-all duration-200",
+        collapsed && "w-[70px]"
       )}
     >
-      <div className="h-full flex flex-col">
-        {children}
-      </div>
+      {children}
     </aside>
   );
 };

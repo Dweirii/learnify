@@ -7,13 +7,13 @@ interface CategoryPlaceholderProps {
   href: string;
 }
 
-export const CategoryPlaceholder = ({ title, href }: CategoryPlaceholderProps) => {
+export const CategoryPlaceholder = ({ title, href, imageUrl }: CategoryPlaceholderProps) => {
   return (
     <Link href={href}>
       <div className="relative w-full h-[200px] md:h-[280px] rounded-lg overflow-hidden group cursor-pointer">
         {/* Category Image */}
         <Image
-          src="/banner.png"
+          src={imageUrl}
           alt={title}
           fill
           className="object-cover transition-transform duration-300 group-hover:scale-105"
