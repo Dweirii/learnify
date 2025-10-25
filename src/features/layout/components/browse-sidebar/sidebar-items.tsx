@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useSidebar } from "@/store/use-sidebar";
-import { BookPlus, HomeIcon, UsersRoundIcon } from "lucide-react";
+import { Calendar, HomeIcon, UsersRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,7 +14,7 @@ type Item = {
 
 const ITEMS: Item[] = [
     { label: "Home", href: "/", icon: HomeIcon },
-    { label: "Categories", href: "/categories", icon: BookPlus },
+    { label: "Calendar", href: "/calendar", icon: Calendar },
     { label: "Following", href: "/following", icon: UsersRoundIcon },
 ]
 

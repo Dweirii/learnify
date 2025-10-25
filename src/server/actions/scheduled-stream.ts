@@ -12,6 +12,9 @@ import {
   getStreamsForDateRange,
   getScheduledStreamById,
   cleanupExpiredStreams,
+  getAllPublicUpcomingStreams,
+  getFollowingScheduledStreams,
+  getRecommendedScheduledStreams,
   CreateScheduledStreamData, 
   UpdateScheduledStreamData, 
   ScheduledStreamFilters 
@@ -280,6 +283,48 @@ export const onCleanupExpiredStreams = async () => {
     return { 
       success: false, 
       error: error instanceof Error ? error.message : "Failed to cleanup streams" 
+    };
+  }
+};
+
+// Public Calendar Page Actions
+export const onGetAllPublicUpcomingStreams = async (limit?: number) => {
+  try {
+    const streams = await getAllPublicUpcomingStreams(limit);
+    return { success: true, data: streams };
+  } catch (error) {
+    console.error("Error fetching all public upcoming streams:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to fetch upcoming streams" 
+    };
+  }
+};
+
+export const onGetFollowingScheduledStreams = async (limit?: number) => {
+  try {
+    const user = await getSelf();
+    const streams = await getFollowingScheduledStreams(user.id, limit);
+    return { success: true, data: streams };
+  } catch (error) {
+    console.error("Error fetching following scheduled streams:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to fetch following streams" 
+    };
+  }
+};
+
+export const onGetRecommendedScheduledStreams = async (limit?: number) => {
+  try {
+    const user = await getSelf();
+    const streams = await getRecommendedScheduledStreams(user.id, limit);
+    return { success: true, data: streams };
+  } catch (error) {
+    console.error("Error fetching recommended scheduled streams:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Failed to fetch recommended streams" 
     };
   }
 };

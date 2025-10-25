@@ -302,6 +302,143 @@ export const cleanupExpiredStreams = async (): Promise<number> => {
   return result.count;
 };
 
+// Public calendar page queries
+export const getAllPublicUpcomingStreams = async (limit: number = 50): Promise<ScheduledStream[]> => {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  try {
+    const streams = await db.scheduledStream.findMany({
+      where: {
+        startTime: { gte: startOfToday },
+        isCancelled: false,
+      },
+      orderBy: { startTime: 'asc' },
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            imageUrl: true,
+            bio: true,
+            createdAt: true,
+            updatedAt: true,
+            externalUserId: true,
+          }
+        }
+      }
+    });
+
+    return streams as ScheduledStream[];
+  } catch (error) {
+    console.error("Error fetching all public upcoming streams:", error);
+    return [];
+  }
+};
+
+export const getFollowingScheduledStreams = async (userId: string, limit: number = 50): Promise<ScheduledStream[]> => {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  try {
+    // Get streams from users that the current user follows
+    const streams = await db.scheduledStream.findMany({
+      where: {
+        startTime: { gte: startOfToday },
+        isCancelled: false,
+        user: {
+          followedBy: {
+            some: {
+              followerId: userId,
+            }
+          }
+        }
+      },
+      orderBy: { startTime: 'asc' },
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            imageUrl: true,
+            bio: true,
+            createdAt: true,
+            updatedAt: true,
+            externalUserId: true,
+          }
+        }
+      }
+    });
+
+    return streams as ScheduledStream[];
+  } catch (error) {
+    console.error("Error fetching following scheduled streams:", error);
+    return [];
+  }
+};
+
+export const getRecommendedScheduledStreams = async (userId: string, limit: number = 50): Promise<ScheduledStream[]> => {
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  try {
+    // Get streams from users that the current user is NOT following and who haven't blocked them
+    const streams = await db.scheduledStream.findMany({
+      where: {
+        startTime: { gte: startOfToday },
+        isCancelled: false,
+        userId: { not: userId }, // Not their own streams
+        user: {
+          AND: [
+            {
+              // Not already following
+              NOT: {
+                followedBy: {
+                  some: {
+                    followerId: userId,
+                  }
+                }
+              }
+            },
+            {
+              // User hasn't blocked current user
+              NOT: {
+                blocking: {
+                  some: {
+                    blockedId: userId,
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      orderBy: { startTime: 'asc' },
+      take: limit,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            imageUrl: true,
+            bio: true,
+            createdAt: true,
+            updatedAt: true,
+            externalUserId: true,
+          }
+        }
+      }
+    });
+
+    return streams as ScheduledStream[];
+  } catch (error) {
+    console.error("Error fetching recommended scheduled streams:", error);
+    return [];
+  }
+};
+
 // Utility functions for UI
 export const getStreamDurationText = (duration: number, isFlexible: boolean): string => {
   if (isFlexible) {
