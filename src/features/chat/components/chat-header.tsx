@@ -7,11 +7,11 @@ import { VariantToggle } from "@/features/stream/components/stream-player/varian
 
 export const ChatHeader = () => {
   return (
-    <div className="relative p-3 border-b">
+    <div className="relative p-3 border-b border-white/10">
       <div className="absolute left-2 top-2 hidden lg:block">
         <ChatToggle />
       </div>
-      <p className="font-semibold text-priamry text-center">
+      <p className="font-semibold text-white text-center">
         Stream Chat
       </p>
       <div className="absolute right-2 top-2">

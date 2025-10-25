@@ -10,7 +10,9 @@ export type StreamEventType =
   | "stream.ended"
   | "viewer.joined"
   | "viewer.left"
-  | "viewer.count.updated";
+  | "viewer.count.updated"
+  | "message.pinned"
+  | "message.unpinned";
 
 export interface StreamEvent {
   type: StreamEventType;
@@ -139,6 +141,9 @@ class SSEConnectionManager {
         case "viewer.joined":
         case "viewer.left":
         case "viewer.count.updated":
+        case "message.pinned":
+        case "message.unpinned":
+          console.log("[SSE] Handling Redis event:", sseEvent);
           this.sendToStream(sseEvent.streamId, sseEvent);
           break;
         default:
@@ -371,6 +376,34 @@ export class SSEEventPublisher {
       viewerCountBuffer.delete(key);
     }, 250);
     viewerCountBuffer.set(key, curr);
+  }
+
+  static publishMessagePinned(streamId: string, userId: string, data: Record<string, unknown>) {
+    console.log("[SSE] Publishing message.pinned event:", { streamId, userId, data });
+    const event: StreamEvent = {
+      type: "message.pinned",
+      streamId, userId, data,
+      timestamp: new Date().toISOString(),
+      __origin: ORIGIN_ID,
+    };
+    sseManager.sendToStream(streamId, event);
+    sseEmitter.emit("message.pinned", event);
+    // Also publish to Redis for cross-server distribution
+    publishToRedis(event);
+    console.log("[SSE] Message.pinned event published successfully");
+  }
+
+  static publishMessageUnpinned(streamId: string, userId: string, data: Record<string, unknown>) {
+    const event: StreamEvent = {
+      type: "message.unpinned",
+      streamId, userId, data,
+      timestamp: new Date().toISOString(),
+      __origin: ORIGIN_ID,
+    };
+    sseManager.sendToStream(streamId, event);
+    sseEmitter.emit("message.unpinned", event);
+    // Also publish to Redis for cross-server distribution
+    publishToRedis(event);
   }
 }
 

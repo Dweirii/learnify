@@ -3,7 +3,7 @@
  */
 
 export interface StreamEvent {
-  type: 'stream.started' | 'stream.ended' | 'viewer.joined' | 'viewer.left' | 'viewer.count.updated' | 'connection.established' | 'connection.stats' | 'ping';
+  type: 'stream.started' | 'stream.ended' | 'viewer.joined' | 'viewer.left' | 'viewer.count.updated' | 'connection.established' | 'connection.stats' | 'ping' | 'message.pinned' | 'message.unpinned';
   streamId: string;
   userId: string;
   data: StreamEventData;
@@ -18,7 +18,9 @@ export type StreamEventData =
   | ViewerCountUpdatedData
   | ConnectionEstablishedData
   | ConnectionStatsData
-  | PingData;
+  | PingData
+  | MessagePinnedData
+  | MessageUnpinnedData;
 
 export interface StreamStartedData {
   isLive: boolean;
@@ -56,6 +58,20 @@ export interface ConnectionStatsData {
 export interface PingData {
   // Empty data for ping events - using object type instead of empty interface
   [key: string]: never;
+}
+
+export interface MessagePinnedData {
+  messageId: string;
+  message: string;
+  from: {
+    name: string;
+    identity: string;
+  };
+  timestamp: number;
+}
+
+export interface MessageUnpinnedData {
+  messageId: string;
 }
 
 export interface StreamStartedEvent extends StreamEvent {
@@ -98,6 +114,16 @@ export interface PingEvent extends StreamEvent {
   data: PingData;
 }
 
+export interface MessagePinnedEvent extends StreamEvent {
+  type: 'message.pinned';
+  data: MessagePinnedData;
+}
+
+export interface MessageUnpinnedEvent extends StreamEvent {
+  type: 'message.unpinned';
+  data: MessageUnpinnedData;
+}
+
 export type TypedStreamEvent = 
   | StreamStartedEvent
   | StreamEndedEvent
@@ -106,7 +132,9 @@ export type TypedStreamEvent =
   | ViewerCountUpdatedEvent
   | ConnectionEstablishedEvent
   | ConnectionStatsEvent
-  | PingEvent;
+  | PingEvent
+  | MessagePinnedEvent
+  | MessageUnpinnedEvent;
 
 export interface ConnectionStats {
   totalConnections: number;

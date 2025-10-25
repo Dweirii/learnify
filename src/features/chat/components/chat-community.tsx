@@ -47,7 +47,7 @@ export const ChatCommunity = ({
   if (isHidden) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-white/50">
           Community is disabled
         </p>
       </div>
@@ -59,10 +59,10 @@ export const ChatCommunity = ({
       <Input
         onChange={(e) => onChange(e.target.value)}
         placeholder="Search community"
-        className="border-white/10"
+        className="bg-[#141517] border-white/10 text-white placeholder:text-white/40 focus-visible:border-[#0FA851] focus-visible:ring-[#0FA851]/30 shadow-[0_0_10px_0_rgba(0,0,0,0.6)]"
       />
       <ScrollArea className="gap-y-2 mt-4">
-        <p className="text-center text-sm text-muted-foreground hidden last:block p-2">
+        <p className="text-center text-sm text-white/50 hidden last:block p-2">
           No results
         </p>
         {filteredParticipants.map((participant) => (

@@ -50,11 +50,11 @@ export const ChatInfo = ({
   }
 
   return (
-    <div className="p-2 text-muted-foreground bg-white/5 border border-white/10 w-full rounded-t-md flex items-center gap-x-2">
+    <div className="px-3 py-2.5 text-white/70 bg-white/[0.03] border-b border-white/[0.08] flex items-center gap-x-2">
       <Hint label={hint}>
-        <Info className="h-4 w-4" />
+        <Info className="h-3.5 w-3.5 text-white/30" />
       </Hint>
-      <p className="text-xs font-semibold">
+      <p className="text-xs text-white/50">
         {label}
       </p>
     </div>

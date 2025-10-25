@@ -11,7 +11,9 @@ export type StreamEventType =
   | "viewer.left"
   | "viewer.count.updated"
   | "connection.established"
-  | "connection.stats";
+  | "connection.stats"
+  | "message.pinned"
+  | "message.unpinned";
 
 export interface StreamEvent {
   type: StreamEventType;
@@ -182,6 +184,8 @@ export function useStreamUpdates(options: UseStreamUpdatesOptions = {}): UseStre
       cleanups.push(addHandler(es, "viewer.joined", handleGeneric));
       cleanups.push(addHandler(es, "viewer.left", handleGeneric));
       cleanups.push(addHandler(es, "viewer.count.updated", handleGeneric));
+      cleanups.push(addHandler(es, "message.pinned", handleGeneric));
+      cleanups.push(addHandler(es, "message.unpinned", handleGeneric));
 
       // Return a disposer for this connection
       (es as EventSource & { __cleanup?: () => void }).__cleanup = () => cleanups.forEach((fn) => fn());

@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
 
     const { SSEEventPublisher } = await import("@/lib/sse");
 
-    switch (type as "stream.started" | "stream.ended" | "viewer.joined" | "viewer.left" | "viewer.count.updated") {
+    switch (type as "stream.started" | "stream.ended" | "viewer.joined" | "viewer.left" | "viewer.count.updated" | "message.pinned" | "message.unpinned") {
       case "stream.started":
         await SSEEventPublisher.publishStreamStarted(streamId, userId, data);
         break;
@@ -159,6 +159,12 @@ export async function POST(request: NextRequest) {
         break;
       case "viewer.count.updated":
         SSEEventPublisher.publishViewerCountUpdate(streamId, userId, data?.viewerCount);
+        break;
+      case "message.pinned":
+        SSEEventPublisher.publishMessagePinned(streamId, userId, data);
+        break;
+      case "message.unpinned":
+        SSEEventPublisher.publishMessageUnpinned(streamId, userId, data);
         break;
       default:
         return new Response(JSON.stringify({ error: `Unknown event type: ${type}` }), {
