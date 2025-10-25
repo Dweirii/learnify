@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { CacheService } from "@/server/services/cache.service";
 import { SSEEventPublisher } from "@/lib/sse";
 import { logger } from "@/lib/logger";
+import { SessionTrackerService } from "@/server/services/session-tracker.service";
 
 export const participantJoined = inngest.createFunction(
   {
@@ -84,13 +85,35 @@ export const participantJoined = inngest.createFunction(
 
     logger.info(`[Inngest] Stream ${stream.id} viewer count: ${stream.viewerCount}`);
 
-    // Step 2: 🚀 OPTIMIZED - Smart cache invalidation (only viewer count affected)
+    // Step 2: Start gamification view session
+    await step.run("start-view-session", async () => {
+        try {
+            // Only track logged-in users (skip anonymous viewers)
+            if (participantIdentity && participantIdentity !== 'anonymous') {
+                // Extract userId from participantIdentity (assuming format: "user_123" or similar)
+                const userId = participantIdentity.replace(/^user_/, '');
+                
+                if (userId && userId !== participantIdentity) {
+                    const sessionId = await SessionTrackerService.startViewSession(userId, stream.id);
+                    
+                    if (sessionId) {
+                        logger.info(`[Inngest] Started view session ${sessionId} for user ${userId}`);
+                    }
+                }
+            }
+        } catch (error) {
+            logger.error(`[Inngest] Failed to start view session for participant ${participantIdentity}:`, error as Error);
+            // Don't throw - gamification failure shouldn't break viewer tracking
+        }
+    });
+
+    // Step 3: 🚀 OPTIMIZED - Smart cache invalidation (only viewer count affected)
     await step.run("invalidate-cache", async () => {
       await CacheService.invalidateViewerCountCache(stream.id);
       logger.info(`[Inngest] Viewer count cache invalidated for stream ${stream.id}`);
     });
 
-    // Step 3: Publish SSE event
+    // Step 4: Publish SSE event
     await step.run("publish-sse-event", async () => {
         SSEEventPublisher.publishViewerJoined(stream.id, userId, stream.viewerCount);
         logger.info(`[Inngest] SSE viewer.joined event published for stream ${stream.id}`);

@@ -8,6 +8,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { VerifiedMark } from "@/components/shared/verified-mark";
 import { UserAvatar, UserAvatarSkeleton } from "@/components/shared/user-avatar";
+import { LevelBadge } from "@/components/shared/level-badge";
 import { useViewerCountFrom, useStreamLiveStatusFrom, useStreamUpdates } from "@/hooks/use-stream-updates";
 import { ConnectionDot } from "@/components/shared/connection-indicator";
 
@@ -24,6 +25,7 @@ interface HeaderProps {
   streamId?: string;
   initialViewerCount?: number;
   category?: StreamCategory | null;
+  level?: number;
 };
 
 export const Header = ({
@@ -36,6 +38,7 @@ export const Header = ({
   streamId,
   initialViewerCount = 0,
   category,
+  level,
 }: HeaderProps) => {
   const participant = useRemoteParticipant(hostIdentity);
 
@@ -73,6 +76,7 @@ export const Header = ({
                   {hostName}
                 </h2>
                 <VerifiedMark />
+                {level && <LevelBadge level={level} size="sm" />}
               </div>
               <p className="text-sm font-semibold text-muted-foreground truncate">
                 {name}
@@ -132,11 +136,12 @@ export const Header = ({
               showBadge
             />
             <div className="space-y-1 min-w-0 flex-1">
-              <div className="flex items-center gap-x-2">
+              <div className="flex items-center gap-x-2 flex-wrap">
                 <h2 className="text-lg font-semibold truncate">
                   {hostName}
                 </h2>
                 <VerifiedMark />
+                {level && <LevelBadge level={level} size="sm" />}
               </div>
               <p className="text-sm font-semibold text-muted-foreground truncate">
                 {name}

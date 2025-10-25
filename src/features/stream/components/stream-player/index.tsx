@@ -56,12 +56,17 @@ interface StreamPlayerProps {
   user: CustomUser;
   stream: CustomStream;
   isFollowing: boolean;
+  userStats?: {
+    level: number;
+    totalXP: number;
+  } | null;
 }
 
 export const StreamPlayer = ({
   user,
   stream,
-  isFollowing
+  isFollowing,
+  userStats,
 }: StreamPlayerProps) => {
   const {
     token,
@@ -110,6 +115,7 @@ export const StreamPlayer = ({
               streamId={stream.id}
               initialViewerCount={stream.viewerCount}
               category={stream.category}
+              level={userStats?.level}
             />
           </ErrorBoundary>
           <ErrorBoundary resetKeys={[stream.id]}>

@@ -4,6 +4,7 @@ import { getUserByUsername } from "@/server/services/user.service";
 import { isFollowingUser } from "@/server/services/follow.service";
 import { isBlockedByUser } from "@/server/services/block.service";
 import { StreamPlayer } from "@/features/stream/components/stream-player";
+import { XPService } from "@/server/services/xp.service";
 
 interface UserPageProps {
   params: Promise<{
@@ -28,11 +29,15 @@ const UserPage = async ({
     notFound();
   }
 
+  // Fetch user stats for gamification
+  const userStats = await XPService.getUserStats(user.id);
+
   return ( 
     <StreamPlayer
       user={user}
       stream={user.stream}
       isFollowing={isFollowing}
+      userStats={userStats}
     />
   );
 }

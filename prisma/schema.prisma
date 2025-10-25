@@ -25,6 +25,12 @@ model User {
   socialLinks SocialLink[]
   scheduledStreams ScheduledStream[]
 
+  // Gamification relations
+  userStats       UserStats?
+  xpTransactions  XPTransaction[]
+  streamSessions  StreamSession[]
+  viewSessions    ViewSession[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -69,17 +75,21 @@ model Stream {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Gamification relations
+  streamSessions  StreamSession[]
+  viewSessions    ViewSession[]
+
   @@index([userId])
   @@index([ingressId])
   @@index([viewerCount, updatedAt])
-  @@index([isLive, viewerCount]) // Optimized for live stream queries
-  @@index([isLive, updatedAt])  // Optimized for recent live streams
-  @@index([category])                    // Single category queries
-  @@index([category, isLive])            // Category + live status
-  @@index([category, isLive, updatedAt]) // Homepage category rows (CRITICAL!)
-  @@index([category, isLive, viewerCount]) // Category + live + popular
-  @@index([isLive, viewerCount, updatedAt]) // Live streams sorted by popularity
-  @@index([name])                        // Stream name searches
+  @@index([isLive, viewerCount]) 
+  @@index([isLive, updatedAt])  
+  @@index([category])             
+  @@index([category, isLive])         
+  @@index([category, isLive, updatedAt])
+  @@index([category, isLive, viewerCount]) 
+  @@index([isLive, viewerCount, updatedAt]) 
+  @@index([name])                     
   @@index([updatedAt])  
 }
 
@@ -158,4 +168,105 @@ model ScheduledStream {
   @@index([userId]) // Index for user queries
   @@index([startTime, isCancelled]) // For cleanup queries
   @@index([userId, startTime]) // For user-specific date range queries
+}
+
+// ===========================================
+// GAMIFICATION MODELS
+// ===========================================
+
+model UserStats {
+  id                String   @id @default(uuid())
+  userId            String   @unique
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Core XP & Level
+  totalXP           Int      @default(0)
+  level             Int      @default(1)
+  
+  // Activity Tracking
+  streamMinutes     Int      @default(0)
+  watchMinutes      Int      @default(0)
+  chatMessageCount  Int      @default(0)
+  
+  // Metadata
+  lastXPUpdate      DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  xpTransactions    XPTransaction[]
+  streamSessions    StreamSession[]
+  viewSessions      ViewSession[]
+  
+  @@index([totalXP])
+  @@index([level])
+  @@index([streamMinutes])
+  @@index([watchMinutes])
+  @@index([userId])
+}
+
+model XPTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "XPTransaction_userId_fkey")
+  userStats   UserStats @relation(fields: [userId], references: [userId], onDelete: Cascade, map: "XPTransaction_userStats_userId_fkey")
+
+  amount      Int
+  reason      String
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([createdAt])
+  @@index([reason])
+}
+
+model StreamSession {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "StreamSession_userId_fkey")
+  userStats       UserStats @relation(fields: [userId], references: [userId], onDelete: Cascade, map: "StreamSession_userStats_userId_fkey")
+  
+  streamId        String
+  stream          Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  durationMinutes Int      @default(0)
+  peakViewers     Int      @default(0)
+  
+  // Status tracking
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([streamId])
+  @@index([startTime])
+  @@index([isActive])
+}
+
+model ViewSession {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "ViewSession_userId_fkey")
+  userStats       UserStats @relation(fields: [userId], references: [userId], onDelete: Cascade, map: "ViewSession_userStats_userId_fkey")
+  
+  streamId        String
+  stream          Stream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  startTime       DateTime @default(now())
+  endTime         DateTime?
+  durationMinutes Int      @default(0)
+  
+  // Status tracking
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([streamId])
+  @@index([startTime])
+  @@index([isActive])
 }

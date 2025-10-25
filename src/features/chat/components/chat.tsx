@@ -156,7 +156,7 @@ export const Chat = ({
     return limitedMessages;
   }, [messages]);
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     if (!send) return;
 
     // Add reply context to message if replying
@@ -169,7 +169,37 @@ export const Chat = ({
       });
     }
 
+    // Send message via LiveKit
     send(messageToSend);
+    
+    // Generate a unique message ID
+    const messageId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // Award XP for chat message (fire and forget)
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          streamId,
+          messageId,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.leveledUp && data.newLevel) {
+          toast.success("Level Up!", {
+            description: `You reached level ${data.newLevel}!`,
+            duration: 3000,
+          });
+        }
+      }
+    } catch (error) {
+      // Silently fail - XP award shouldn't block chat
+      console.error("Failed to award XP for chat message:", error);
+    }
+
     setValue("");
     setReplyMessage(null);
   };

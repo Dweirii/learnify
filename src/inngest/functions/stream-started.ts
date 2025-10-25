@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { CacheService } from "@/server/services/cache.service";
 import { SSEEventPublisher } from "@/lib/sse";
 import { logger } from "@/lib/logger";
+import { SessionTrackerService } from "@/server/services/session-tracker.service";
+import { XPService } from "@/server/services/xp.service";
 
 export const streamStarted = inngest.createFunction(
     {
@@ -136,7 +138,33 @@ export const streamStarted = inngest.createFunction(
             logger.info(`[Inngest] Stream status cache invalidated for stream ${stream.id}`);
         });
 
-        // Step 3: Publish SSE event
+        // Step 3: Start gamification session and award XP
+        await step.run("start-gamification-session", async () => {
+            try {
+                // Start stream session for XP tracking
+                const sessionId = await SessionTrackerService.startStreamSession(stream.userId, stream.id);
+                
+                if (sessionId) {
+                    // Award +50 XP for going live
+                    await XPService.awardXP(
+                        stream.userId,
+                        XPService.XP_CONSTANTS.STREAM_START,
+                        "stream_start",
+                        {
+                            streamId: stream.id,
+                            sessionId,
+                        }
+                    );
+                    
+                    logger.info(`[Inngest] Started gamification session ${sessionId} and awarded XP for stream start`);
+                }
+            } catch (error) {
+                logger.error(`[Inngest] Failed to start gamification session for stream ${stream.id}:`, error as Error);
+                // Don't throw - gamification failure shouldn't break stream start
+            }
+        });
+
+        // Step 4: Publish SSE event
         await step.run("publish-sse-event", async () => {
             try {
                 const fullStream = await db.stream.findUnique({

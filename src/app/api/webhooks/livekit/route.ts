@@ -121,7 +121,13 @@ export async function POST(req: Request) {
 
       default:
         logger.warn(`Unhandled event type: ${event.event}`, context);
+        break;
     }
+
+    // Note: Chat message XP handling is NOT done via webhooks
+    // LiveKit webhooks don't provide a "data_received" or "room_data_received" event type
+    // Chat XP is handled via the /api/chat endpoint which is called from the client
+    // after sending a message. See: src/app/api/chat/route.ts
 
       logger.info("Webhook processed successfully", context);
 

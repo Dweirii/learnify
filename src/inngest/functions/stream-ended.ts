@@ -2,6 +2,7 @@ import { inngest } from "@/lib/inngest";
 import { db } from "@/lib/db";
 import { CacheService } from "@/server/services/cache.service";
 import { logger } from "@/lib/logger";
+import { SessionTrackerService } from "@/server/services/session-tracker.service";
 
 /**
  * Inngest Function: Handle Stream Ended Event
@@ -147,13 +148,31 @@ export const streamEnded = inngest.createFunction(
 
     logger.info(`[Inngest] Stream ${stream.id} ended, viewers reset to 0`);
 
-        // OPTIMIZED - Smart cache invalidation (stream status changed)
+        // Step 2: End gamification session
+        await step.run("end-gamification-session", async () => {
+            try {
+                // Find and end the active stream session
+                const activeSessionId = await SessionTrackerService.getActiveSession(stream.userId, 'stream');
+                
+                if (activeSessionId) {
+                    await SessionTrackerService.endStreamSession(activeSessionId);
+                    logger.info(`[Inngest] Ended gamification session ${activeSessionId} for stream ${stream.id}`);
+                } else {
+                    logger.warn(`[Inngest] No active stream session found for user ${stream.userId}`);
+                }
+            } catch (error) {
+                logger.error(`[Inngest] Failed to end gamification session for stream ${stream.id}:`, error as Error);
+                // Don't throw - gamification failure shouldn't break stream end
+            }
+        });
+
+        // Step 3: OPTIMIZED - Smart cache invalidation (stream status changed)
         await step.run("invalidate-cache", async () => {
             await CacheService.invalidateStreamStatusCache(stream.id, false);
             logger.info(`[Inngest] Stream status cache invalidated for stream ${stream.id}`);
         });
 
-        // Publish SSE event for stream ended
+        // Step 4: Publish SSE event for stream ended
         await step.run("publish-sse-event", async () => {
           const { SSEEventPublisher } = await import("@/lib/sse");
           
