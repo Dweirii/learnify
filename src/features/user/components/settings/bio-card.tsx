@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { updateUser } from "@/server/actions/user";
-import { FileText, Save } from "lucide-react";
+import { FileText } from "lucide-react";
 
 interface BioCardProps {
   initialBio: string | null;

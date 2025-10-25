@@ -4,9 +4,9 @@ import { useUser, UserProfile } from "@clerk/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { User, Mail, AtSign, Edit, ArrowLeft } from "lucide-react";
+import { User, Mail, AtSign } from "lucide-react";
 import { useState } from "react";
-import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 export function ProfileInfoCard() {
   const { user } = useUser();
@@ -157,9 +157,11 @@ export function ProfileInfoCard() {
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-full overflow-hidden bg-transparent">
             {user.imageUrl ? (
-              <img 
+              <Image 
                 src={user.imageUrl} 
                 alt="Profile" 
+                width={64}
+                height={64}
                 className="w-full h-full object-cover"
               />
             ) : (

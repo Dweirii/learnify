@@ -3,9 +3,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 
-// Session verification timeout (5 minutes)
-const VERIFICATION_TIMEOUT = 5 * 60 * 1000;
-
 export interface SessionVerificationResult {
   requiresReauth: boolean;
   userId: string;

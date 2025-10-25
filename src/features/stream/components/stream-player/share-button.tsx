@@ -25,7 +25,7 @@ export const ShareButton = ({ hostName, streamUrl }: ShareButtonProps) => {
       await navigator.clipboard.writeText(streamUrl);
       toast.success("Link copied to clipboard!");
       setIsOpen(false);
-    } catch (error) {
+    } catch {
       toast.error("Failed to copy link");
     }
   };

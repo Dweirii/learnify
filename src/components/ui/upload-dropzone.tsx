@@ -10,7 +10,6 @@ import { validateThumbnailFile } from "@/lib/bunny-cdn";
 interface UploadDropzoneProps {
   onUploadComplete: (url: string) => void;
   onUploadError?: (error: string) => void;
-  userId: string;
   currentThumbnailUrl?: string | null;
   disabled?: boolean;
   className?: string;
@@ -26,7 +25,6 @@ interface UploadState {
 export function UploadDropzone({
   onUploadComplete,
   onUploadError,
-  userId,
   currentThumbnailUrl,
   disabled = false,
   className,

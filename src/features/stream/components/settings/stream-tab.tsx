@@ -14,7 +14,6 @@ interface StreamTabProps {
   initialIsChatFollowersOnly: boolean;
   serverUrl: string | null;
   streamKey: string | null;
-  userId: string;
 }
 
 export function StreamTab({
@@ -26,7 +25,6 @@ export function StreamTab({
   initialIsChatFollowersOnly,
   serverUrl,
   streamKey,
-  userId
 }: StreamTabProps) {
   return (
     <div className="space-y-6">
@@ -41,7 +39,6 @@ export function StreamTab({
         initialName={initialName}
         initialCategory={initialCategory}
         initialThumbnailUrl={initialThumbnailUrl}
-        userId={userId}
       />
 
       <ChatSettingsCard

@@ -26,7 +26,6 @@ export const UnfollowDialog = ({
   isOpen,
   onClose,
   onConfirm,
-  hostIdentity,
   hostName,
   hostImageUrl,
 }: UnfollowDialogProps) => {
@@ -46,7 +45,7 @@ export const UnfollowDialog = ({
             <span>Unfollow {hostName}?</span>
           </DialogTitle>
           <DialogDescription className="pt-2 text-gray-300">
-            You'll stop seeing {hostName}'s streams in your feed and won't receive notifications when they go live.
+            You&apos;ll stop seeing {hostName}&apos;s streams in your feed and won&apos;t receive notifications when they go live.
           </DialogDescription>
         </DialogHeader>
 

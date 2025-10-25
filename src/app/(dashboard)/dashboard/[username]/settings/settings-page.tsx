@@ -68,7 +68,6 @@ export function SettingsPageClient({ user, stream, socialLinks }: SettingsPagePr
             initialIsChatFollowersOnly={stream.isChatFollowersOnly}
             serverUrl={stream.serverUrl}
             streamKey={stream.streamKey}
-            userId={user.id}
           />
         )}
       </div>

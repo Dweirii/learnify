@@ -1,13 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { Settings } from "lucide-react";
 import { StreamCategory } from "@prisma/client";
-import { useUser } from "@clerk/nextjs";
-
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
 
 interface InfoCardProps {
   name: string;
@@ -15,7 +9,6 @@ interface InfoCardProps {
   hostIdentity: string;
   viewerIdentity: string;
   category: StreamCategory | null;
-  isLive: boolean;
 };
 
 export const InfoCard = ({
@@ -24,11 +17,9 @@ export const InfoCard = ({
   hostIdentity,
   viewerIdentity,
   category,
-  isLive,
 }: InfoCardProps) => {
   const hostAsViewer = `host-${hostIdentity}`;
   const isHost = viewerIdentity === hostAsViewer;
-  const { user } = useUser();
 
   // Helper function to format category display
   const formatCategory = (cat: StreamCategory | null): string => {

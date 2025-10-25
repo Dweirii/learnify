@@ -23,6 +23,7 @@ model User {
 
   stream      Stream?
   socialLinks SocialLink[]
+  scheduledStreams ScheduledStream[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -130,4 +131,31 @@ model SocialLink {
   @@unique([userId, platform])
   @@index([userId])
   @@index([userId, order])
+}
+
+model ScheduledStream {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String   @db.Text
+  description String?  @db.Text
+  category    StreamCategory
+  
+  startTime   DateTime
+  duration    Int      // in minutes
+  isFlexibleDuration Boolean @default(false)
+  
+  // Timezone
+  timezone    String   @default("UTC")
+  
+  // Status
+  isCancelled Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId]) // Index for user queries
+  @@index([startTime, isCancelled]) // For cleanup queries
+  @@index([userId, startTime]) // For user-specific date range queries
 }

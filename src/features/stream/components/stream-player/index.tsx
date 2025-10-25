@@ -119,7 +119,6 @@ export const StreamPlayer = ({
               name={stream.name}
               thumbnailUrl={stream.thumbnailUrl}
               category={stream.category}
-              isLive={stream.isLive}
             />
           </ErrorBoundary>
           <ErrorBoundary resetKeys={[user.id]}>

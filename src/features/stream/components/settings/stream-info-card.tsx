@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { updateStream } from "@/server/actions/stream";
 import { UploadDropzone } from "@/components/ui/upload-dropzone";
 import { StreamCategory } from "@prisma/client";
-import { Monitor, Palette, BookOpen, Lightbulb, Save, Trash, Upload } from "lucide-react";
+import { Monitor, Palette, BookOpen, Lightbulb, Trash, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 
@@ -17,7 +17,6 @@ interface StreamInfoCardProps {
   initialName: string;
   initialCategory: StreamCategory;
   initialThumbnailUrl: string | null;
-  userId: string;
 }
 
 const categories = [
@@ -54,8 +53,7 @@ const categories = [
 export function StreamInfoCard({ 
   initialName, 
   initialCategory, 
-  initialThumbnailUrl, 
-  userId 
+  initialThumbnailUrl 
 }: StreamInfoCardProps) {
   const [name, setName] = useState(initialName);
   const [category, setCategory] = useState(initialCategory);
@@ -284,18 +282,12 @@ export function StreamInfoCard({
               {/* Thumbnail Preview */}
               <div className="relative group">
                 <div className="relative w-64 h-32 rounded-xl overflow-hidden bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)]">
-                  <img
+                  <Image
                     src={thumbnailUrl}
                     alt="Stream thumbnail"
+                    width={256}
+                    height={128}
                     className="w-full h-full object-cover"
-                    onLoad={(e) => {
-                      const img = e.target as HTMLImageElement;
-                      const dimensions = `${img.naturalWidth}x${img.naturalHeight}`;
-                      const aspectRatio = (img.naturalWidth / img.naturalHeight).toFixed(2);
-                      // Store dimensions for stats display
-                      (e.target as any).dataset.dimensions = dimensions;
-                      (e.target as any).dataset.aspectRatio = aspectRatio;
-                    }}
                   />
                   {/* Overlay with controls */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
@@ -390,7 +382,6 @@ export function StreamInfoCard({
               <div className="border-2 border-dashed border-gray-600 rounded-xl p-8 bg-[#141517] shadow-[0_0_10px_0_rgba(0,0,0,0.6)] transition-all duration-200 hover:border-[#0FA84E]/50 hover:bg-[#1A1B1F] group">
                 <UploadDropzone
                   onUploadComplete={handleThumbnailUpload}
-                  userId={userId}
                   currentThumbnailUrl={thumbnailUrl}
                   className="min-h-[120px]"
                 />

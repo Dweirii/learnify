@@ -71,6 +71,61 @@ export const blockSchema = z.object({
 });
 
 /**
+ * Scheduled Stream Validation Schemas
+ */
+export const recurrencePatternSchema = z.enum(['DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY']);
+
+export const streamCategorySchema = z.enum([
+  'CODING_TECHNOLOGY',
+  'CREATIVITY_ARTS', 
+  'STUDY_FOCUS',
+  'INNOVATION_BUSINESS'
+]);
+
+export const scheduledStreamSchema = z.object({
+  id: z.string().min(1),
+  userId: z.string().min(1),
+  title: z.string().min(3).max(100),
+  description: z.string().max(500).optional(),
+  category: streamCategorySchema,
+  startTime: z.date(),
+  duration: z.number().int().min(15).max(720), // 15 minutes to 12 hours
+  isFlexibleDuration: z.boolean().default(false),
+  timezone: z.string().min(1).max(50).default('UTC'),
+  isCancelled: z.boolean().default(false),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export const createScheduledStreamSchema = z.object({
+  title: z.string().min(3).max(100),
+  description: z.string().max(500).optional(),
+  category: streamCategorySchema,
+  startTime: z.date().refine(
+    (date) => date > new Date(),
+    { message: "Start time must be in the future" }
+  ),
+  duration: z.number().int().min(15).max(720), // 15 minutes to 12 hours
+  isFlexibleDuration: z.boolean().default(false),
+  timezone: z.string().min(1).max(50).default('UTC'),
+});
+
+export const updateScheduledStreamSchema = createScheduledStreamSchema.partial().extend({
+  isCancelled: z.boolean().optional(),
+});
+
+export const scheduledStreamFiltersSchema = z.object({
+  userId: z.string().min(1).optional(),
+  category: streamCategorySchema.optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
+  isRecurring: z.boolean().optional(),
+  isCancelled: z.boolean().optional(),
+  limit: z.number().int().min(1).max(100).default(20),
+  offset: z.number().int().min(0).default(0),
+});
+
+/**
  * API Request Validation Schemas
  */
 export const paginationSchema = z.object({

@@ -43,12 +43,12 @@ export const SubscribeButton = () => {
               <span>Coming Soon!</span>
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Subscription features are currently in development. Soon you'll be able to subscribe to your favorite streamers and get exclusive benefits!
+              Subscription features are currently in development. Soon you&apos;ll be able to subscribe to your favorite streamers and get exclusive benefits!
             </DialogDescription>
           </DialogHeader>
 
           <div className="p-4 bg-muted/50 rounded-lg">
-            <h4 className="font-semibold mb-2">What's coming:</h4>
+            <h4 className="font-semibold mb-2">What&apos;s coming:</h4>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• Subscribe to streamers</li>
               <li>• Exclusive subscriber-only content</li>

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { updateStream } from "@/server/actions/stream";
-import { MessageSquare, Save } from "lucide-react";
 
 interface ChatSettingsCardProps {
   initialIsChatEnabled: boolean;

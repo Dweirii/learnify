@@ -81,7 +81,6 @@ export function ReauthModal({ isOpen, onClose, onSuccess }: ReauthModalProps) {
 
   // Check if user signed in with OAuth (no password)
   const isOAuthUser = user?.passwordEnabled === false;
-  const hasPassword = user?.passwordEnabled === true;
 
   if (isOAuthUser) {
     // For OAuth users, show a different approach

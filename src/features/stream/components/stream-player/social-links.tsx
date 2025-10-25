@@ -34,8 +34,8 @@ export const SocialLinks = ({ socialLinks }: SocialLinksProps) => {
   return (
     <div className="flex items-center gap-2">
       {socialLinks.map((link) => {
-        const Icon = platformIcons[link.platform];
-        const hoverColor = platformColors[link.platform];
+        const Icon = platformIcons[link.platform as keyof typeof platformIcons];
+        const hoverColor = platformColors[link.platform as keyof typeof platformColors];
 
         return (
           <a

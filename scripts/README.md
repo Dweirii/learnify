@@ -33,9 +33,14 @@ This directory contains all shell scripts used for development, testing, and mai
 - `inngest-test-summary.sh` - Inngest testing summary
 - `stream-test-guide.sh` - Stream testing guide
 
+### 🧹 Maintenance Scripts
+- `cleanup-orphaned-scheduled-streams.ts` - Removes orphaned ScheduledStream records (TypeScript)
+
 ## Usage
 
-All scripts are executable and can be run from the project root:
+### Shell Scripts (.sh)
+
+All shell scripts are executable and can be run from the project root:
 
 ```bash
 # Make scripts executable (if needed)
@@ -47,6 +52,17 @@ chmod +x scripts/*.sh
 # Or from the scripts directory
 cd scripts
 ./test-performance.sh
+```
+
+### TypeScript Scripts (.ts)
+
+TypeScript maintenance scripts can be run using npx:
+
+```bash
+# Run the cleanup script
+npx tsx scripts/cleanup-orphaned-scheduled-streams.ts --yes
+
+# The --yes flag is required to confirm the operation
 ```
 
 ## Script Dependencies

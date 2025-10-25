@@ -6,9 +6,57 @@ import { StreamCategory } from "@prisma/client";
 // Social platform types
 export type SocialPlatform = "GITHUB" | "YOUTUBE" | "LINKEDIN" | "INSTAGRAM" | "TWITTER" | "FACEBOOK";
 
+// Scheduled Stream types
+export type RecurrencePattern = "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
+
+export type ScheduledStream = {
+  id: string;
+  userId: string;
+  user?: SerializedUser; // Optional user field for when it's included in queries
+  title: string;
+  description: string | null;
+  category: StreamCategory;
+  startTime: Date;
+  duration: number; // in minutes
+  isFlexibleDuration: boolean;
+  timezone: string;
+  isCancelled: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type ScheduledStreamWithOccurrences = ScheduledStream & {
+  occurrences?: Date[]; // Generated for display
+};
+
+export type CreateScheduledStreamData = {
+  title: string;
+  description?: string;
+  category: StreamCategory;
+  startTime: Date;
+  duration: number;
+  isFlexibleDuration?: boolean;
+  timezone?: string;
+};
+
+export type UpdateScheduledStreamData = Partial<CreateScheduledStreamData> & {
+  isCancelled?: boolean;
+};
+
+export type ScheduledStreamFilters = {
+  userId?: string;
+  category?: StreamCategory;
+  startDate?: Date;
+  endDate?: Date;
+  isRecurring?: boolean;
+  isCancelled?: boolean;
+  limit?: number;
+  offset?: number;
+};
+
 export type SocialLink = {
   id: string;
-  platform: SocialPlatform;
+  platform: SocialPlatform | string; // Allow string for backward compatibility
   url: string;
   order: number;
 };

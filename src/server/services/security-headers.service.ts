@@ -114,7 +114,7 @@ export class SecurityHeadersService {
   }
 
   // Middleware function for Next.js
-  middleware(_request: NextRequest): NextResponse {
+  middleware(): NextResponse {
     const response = NextResponse.next();
     return this.applySecurityHeaders(response);
   }

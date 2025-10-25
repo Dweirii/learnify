@@ -6,6 +6,7 @@ import { VerifiedMark } from "@/components/shared/verified-mark";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { SocialLink } from "@/types";
+import { UserSchedule } from "@/features/calendar/components";
 
 interface AboutCardProps {
   hostName: string;
@@ -27,8 +28,6 @@ export const AboutCard = ({
   const hostAsViewer = `host-${hostIdentity}`;
   const isHost = viewerIdentity === hostAsViewer;
   const { user } = useUser();
-
-  const followedByLabel = followedByCount === 1 ? "follower" : "followers";
 
   const getSocialIcon = (platform: string) => {
     switch (platform) {
@@ -120,6 +119,11 @@ export const AboutCard = ({
           <p className="text-sm text-gray-300 leading-relaxed">
             {bio || "This user prefers to keep an air of mystery about them."}
           </p>
+        </div>
+        
+        {/* Schedule Section */}
+        <div className="border-t border-gray-700/50 pt-6">
+          <UserSchedule username={hostName} />
         </div>
       </div>
     </div>

@@ -43,7 +43,8 @@ const HEARTBEAT_MS = Number(process.env.SSE_HEARTBEAT_MS || 25000); // 25s defau
 
 // ---------- Helpers ----------
 function sanitizeForClient(evt: StreamEvent) {
-  const { __origin: _origin, ...rest } = evt;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { __origin, ...rest } = evt;
   return rest;
 }
 function formatSSE(evt: StreamEvent): string {

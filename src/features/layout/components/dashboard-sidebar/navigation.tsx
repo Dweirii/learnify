@@ -6,6 +6,7 @@ import {
   Fullscreen,
   Settings,
   Users,
+  Calendar,
 } from "lucide-react";
 
 import { NavItem, NavItemSkeleton } from "./nav-item";
@@ -21,21 +22,26 @@ export const Navigation = () => {
       icon: Fullscreen,
     },
     {
-      label: "Settings",
-      href: `/dashboard/${user?.username}/settings`,
-      icon: Settings,
+      label: "Calendar",
+      href: `/dashboard/${user?.username}/calendar`,
+      icon: Calendar,
     },
     {
       label: "Community",
       href: `/dashboard/${user?.username}/community`,
       icon: Users,
     },
+    {
+      label: "Settings",
+      href: `/dashboard/${user?.username}/settings`,
+      icon: Settings,
+    },
   ];
 
   if (!user?.username) {
     return (
       <ul className="space-y-2">
-        {[...Array(3)].map((_, i) => (
+        {[...Array(4)].map((_, i) => (
           <NavItemSkeleton key={i} />
         ))}
       </ul>

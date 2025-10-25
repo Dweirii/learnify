@@ -78,7 +78,6 @@ export function useStreamUpdates(options: UseStreamUpdatesOptions = {}): UseStre
     streamId,
     userId = "anonymous",
     category,
-    autoReconnect: _autoReconnect = true,
     reconnectInterval = 4000,
     maxReconnectAttempts = 5,
     onError,

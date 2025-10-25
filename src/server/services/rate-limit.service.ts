@@ -102,7 +102,7 @@ export class RateLimitService {
       
       // Check if limit exceeded
       if (currentCount >= config.maxRequests) {
-        const resetTime = await this.getResetTime(key);
+        const resetTime = await this.getResetTime();
         const retryAfter = Math.ceil((resetTime - now) / 1000);
         
         logger.warn('[RateLimit] Rate limit exceeded', {
@@ -172,17 +172,17 @@ export class RateLimitService {
     }
   }
 
-  private async getResetTime(key: string): Promise<number> {
+  private async getResetTime(): Promise<number> {
     try {
       // Get TTL for the key
-      const ttl = await this.getKeyTTL(key);
+      const ttl = await this.getKeyTTL();
       return Date.now() + (ttl * 1000);
     } catch {
       return Date.now() + (15 * 60 * 1000); // Default 15 minutes
     }
   }
 
-  private async getKeyTTL(_key: string): Promise<number> {
+  private async getKeyTTL(): Promise<number> {
     // This would need to be implemented in your Redis helpers
     // For now, return a default TTL
     return 15 * 60; // 15 minutes in seconds

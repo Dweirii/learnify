@@ -118,9 +118,8 @@ export function useStreamList(options: UseStreamListOptions = {}): UseStreamList
     reconnectAttemptsRef.current = 0;
   }, []);
 
-  const onConnectionStats = useCallback((e: MessageEvent) => {
+  const onConnectionStats = useCallback(() => {
     // Optional: you can surface stats if needed
-    const _payload = safeJSON<SSEPayload>(e.data);
     // no-op by default
   }, []);
 
