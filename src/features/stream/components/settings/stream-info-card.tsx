@@ -24,28 +24,28 @@ const categories = [
     value: StreamCategory.CODING_TECHNOLOGY,
     label: "Coding & Technology",
     icon: Monitor,
-    color: "bg-blue-500",
+    color: "bg-transparent",
     description: "Programming, software development, and tech tutorials"
   },
   {
     value: StreamCategory.CREATIVITY_ARTS,
     label: "Creativity & Arts",
     icon: Palette,
-    color: "bg-purple-500",
+    color: "bg-transparent",
     description: "Digital art, design, music, and creative content"
   },
   {
     value: StreamCategory.STUDY_FOCUS,
     label: "Study & Focus",
     icon: BookOpen,
-    color: "bg-green-500",
+    color: "bg-transparent",
     description: "Educational content, tutorials, and learning sessions"
   },
   {
     value: StreamCategory.INNOVATION_BUSINESS,
     label: "Innovation & Business",
     icon: Lightbulb,
-    color: "bg-orange-500",
+    color: "bg-transparent",
     description: "Entrepreneurship, business strategies, and innovation"
   }
 ];
@@ -241,7 +241,7 @@ export function StreamInfoCard({
                       cat.color,
                       isSelected && "scale-105 shadow-xl"
                     )}>
-                      <Icon className="w-6 h-6" />
+                      <Icon className="w-6 h-6 border-none" stroke="#0FA84E" strokeWidth={2} />
                     </div>
                     
                     <div className="flex-1 min-w-0">

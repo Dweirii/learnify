@@ -113,7 +113,7 @@ export const ConnectModal = () => {
             </AlertDescription>
           </Alert>
           <div className="flex justify-end gap-2 mt-4">
-            <DialogClose ref={closeRef}>
+            <DialogClose ref={closeRef} asChild>
               <Button variant="ghost" className="text-gray-400 hover:text-white rounded-sm">
                 Cancel
               </Button>

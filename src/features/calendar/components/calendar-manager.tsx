@@ -147,7 +147,7 @@ export const CalendarManager = ({ className }: CalendarManagerProps) => {
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-2xl font-semibold text-white">My Scheduled Stream</h1>
         <Button
-          onClick={handleCreateStream}
+          onClick={() => streams.length > 0 && streams[0] ? handleEditStream(streams[0]) : handleCreateStream()}
           className="bg-[#0FA84E] hover:bg-[#0FA84E]/90 text-white"
         >
           <Plus className="w-4 h-4 mr-2" />
