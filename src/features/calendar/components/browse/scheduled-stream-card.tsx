@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import Link from "next/link";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
 import { ScheduledStream } from "@/types";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { cn } from "@/lib/utils";
@@ -90,8 +90,8 @@ export const ScheduledStreamCard = ({ stream, className }: ScheduledStreamCardPr
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <UserAvatar
               username={stream.user?.username || "Unknown"}
-              imageUrl={stream.user?.imageUrl}
-              size="sm"
+              imageUrl={stream.user?.imageUrl || ""}
+              size="default"
             />
             <span className="text-gray-400 text-sm font-medium truncate">
               {stream.user?.username || "Unknown"}

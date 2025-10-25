@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { format, startOfDay, endOfDay, addDays, startOfWeek, endOfWeek, addWeeks, startOfMonth, endOfMonth } from "date-fns";
+import { startOfDay, endOfDay, addDays, startOfWeek, endOfWeek, addWeeks, startOfMonth, endOfMonth } from "date-fns";
 import { StreamCategory } from "@prisma/client";
 import { CalendarFilters, FilterType } from "./calendar-filters";
 import { ScheduledStreamCard } from "./scheduled-stream-card";
@@ -11,7 +11,7 @@ import {
   onGetFollowingScheduledStreams,
   onGetScheduledStreams,
 } from "@/server/actions/scheduled-stream";
-import { Loader2, Calendar, Clock, Sun, Moon, CalendarDays } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type DatePreset = "all" | "today" | "tomorrow" | "this-week" | "next-week" | "this-month";
